@@ -95,9 +95,13 @@ const InvoicePrint = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-6 border-b border-border/50 print:border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 print:bg-amber-50">
-              <Anchor className="w-8 h-8 text-primary print:text-amber-700" />
-            </div>
+            {logoUrl ? (
+              <img src={logoUrl} alt={boatName} className="w-12 h-12 rounded-lg object-contain" />
+            ) : (
+              <div className="p-2 rounded-lg bg-primary/10 print:bg-amber-50">
+                <Anchor className="w-8 h-8 text-primary print:text-amber-700" />
+              </div>
+            )}
             <div>
               <h1 className="text-2xl font-serif font-bold text-foreground print:text-gray-900">
                 {boatName || 'Floating Hotel'}
