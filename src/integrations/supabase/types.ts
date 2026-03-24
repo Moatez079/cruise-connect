@@ -14,6 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      boat_settings: {
+        Row: {
+          boat_id: string
+          created_at: string
+          default_currency: string
+          farewell_message: string
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          updated_at: string
+        }
+        Insert: {
+          boat_id: string
+          created_at?: string
+          default_currency?: string
+          farewell_message?: string
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          updated_at?: string
+        }
+        Update: {
+          boat_id?: string
+          created_at?: string
+          default_currency?: string
+          farewell_message?: string
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "boat_settings_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: true
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       boats: {
         Row: {
           created_at: string
