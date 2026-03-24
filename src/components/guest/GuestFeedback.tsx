@@ -86,17 +86,23 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
           food_rating: ratings.food || null,
           original_comment: comment.trim() || null,
           translated_comment: translatedComment,
-        })
+        } as any)
         .select('id')
         .single();
 
       if (error) throw error;
 
+      const feedbackId = (feedback as any)?.id;
+
+      if (error) throw error;
+
       // Generate and upload PDF
-      try {
-        await generateAndUploadPDF(feedback.id);
-      } catch (pdfErr) {
-        console.warn('PDF generation failed:', pdfErr);
+      if (feedbackId) {
+        try {
+          await generateAndUploadPDF(feedbackId);
+        } catch (pdfErr) {
+          console.warn('PDF generation failed:', pdfErr);
+        }
       }
 
       onSuccess();
