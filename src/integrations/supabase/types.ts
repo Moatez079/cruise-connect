@@ -44,6 +44,59 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_feedback: {
+        Row: {
+          boat_id: string
+          cleanliness_rating: number | null
+          created_at: string
+          food_rating: number | null
+          guest_language: string
+          id: string
+          original_comment: string | null
+          overall_rating: number
+          pdf_path: string | null
+          room_number: number
+          service_rating: number | null
+          translated_comment: string | null
+        }
+        Insert: {
+          boat_id: string
+          cleanliness_rating?: number | null
+          created_at?: string
+          food_rating?: number | null
+          guest_language?: string
+          id?: string
+          original_comment?: string | null
+          overall_rating: number
+          pdf_path?: string | null
+          room_number: number
+          service_rating?: number | null
+          translated_comment?: string | null
+        }
+        Update: {
+          boat_id?: string
+          cleanliness_rating?: number | null
+          created_at?: string
+          food_rating?: number | null
+          guest_language?: string
+          id?: string
+          original_comment?: string | null
+          overall_rating?: number
+          pdf_path?: string | null
+          room_number?: number
+          service_rating?: number | null
+          translated_comment?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_feedback_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_sessions: {
         Row: {
           boat_id: string

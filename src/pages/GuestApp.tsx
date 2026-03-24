@@ -5,10 +5,11 @@ import GuestLanguageSelect from '@/components/guest/GuestLanguageSelect';
 import GuestMainMenu from '@/components/guest/GuestMainMenu';
 import GuestRoomService from '@/components/guest/GuestRoomService';
 import GuestCustomRequest from '@/components/guest/GuestCustomRequest';
+import GuestFeedback from '@/components/guest/GuestFeedback';
 import GuestSuccess from '@/components/guest/GuestSuccess';
 import GuestInvoice from '@/pages/GuestInvoice';
 
-type GuestView = 'language' | 'menu' | 'room_service' | 'drinks' | 'custom' | 'invoice' | 'success';
+type GuestView = 'language' | 'menu' | 'room_service' | 'drinks' | 'custom' | 'feedback' | 'invoice' | 'success';
 
 const GuestApp = () => {
   const { boatId, roomNumber } = useParams();
@@ -64,6 +65,15 @@ const GuestApp = () => {
       )}
       {view === 'custom' && (
         <GuestCustomRequest
+          language={language}
+          boatId={boatId}
+          roomNumber={roomNum}
+          onBack={handleBack}
+          onSuccess={handleRequestSent}
+        />
+      )}
+      {view === 'feedback' && (
+        <GuestFeedback
           language={language}
           boatId={boatId}
           roomNumber={roomNum}

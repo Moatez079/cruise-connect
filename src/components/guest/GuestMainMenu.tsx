@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { t } from '@/lib/languages';
 import { supabase } from '@/integrations/supabase/client';
-import { Anchor, ChevronLeft, ConciergeBell, GlassWater, MessageSquare, Receipt } from 'lucide-react';
+import { Anchor, ChevronLeft, ConciergeBell, GlassWater, MessageSquare, Receipt, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface Props {
@@ -34,6 +34,7 @@ const GuestMainMenu = ({ language, roomNumber, boatId, onNavigate, onBack }: Pro
     { id: 'room_service', icon: ConciergeBell, label: t(language, 'roomService'), color: 'text-primary' },
     { id: 'drinks', icon: GlassWater, label: t(language, 'drinks'), color: 'text-primary' },
     { id: 'custom', icon: MessageSquare, label: t(language, 'customRequest'), color: 'text-primary' },
+    { id: 'feedback', icon: Star, label: t(language, 'feedback'), color: 'text-primary' },
   ];
 
   return (
