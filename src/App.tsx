@@ -11,6 +11,8 @@ import Dashboard from "./pages/Dashboard";
 import Boats from "./pages/Boats";
 import UsersPage from "./pages/Users";
 import Rooms from "./pages/Rooms";
+import GuestApp from "./pages/GuestApp";
+import Requests from "./pages/Requests";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -29,6 +31,9 @@ const App = () => (
             <Route path="/boats" element={<ProtectedRoute requiredRole="owner"><Boats /></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute requiredRole="owner"><UsersPage /></ProtectedRoute>} />
             <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
+            <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
+            {/* Guest app - no auth required */}
+            <Route path="/guest/:boatId/:roomNumber" element={<GuestApp />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
