@@ -6,6 +6,7 @@ import GuestLanguageSelect from '@/components/guest/GuestLanguageSelect';
 import GuestMainMenu from '@/components/guest/GuestMainMenu';
 import GuestRoomService from '@/components/guest/GuestRoomService';
 import GuestCustomRequest from '@/components/guest/GuestCustomRequest';
+import GuestDrinksMenu from '@/components/guest/GuestDrinksMenu';
 import GuestFeedback from '@/components/guest/GuestFeedback';
 import GuestSuccess from '@/components/guest/GuestSuccess';
 import GuestInvoice from '@/pages/GuestInvoice';
@@ -58,6 +59,15 @@ const GuestApp = () => {
         )}
         {view === 'room_service' && (
           <GuestRoomService
+            language={language}
+            boatId={boatId}
+            roomNumber={roomNum}
+            onBack={handleBack}
+            onSuccess={handleRequestSent}
+          />
+        )}
+        {view === 'drinks' && (
+          <GuestDrinksMenu
             language={language}
             boatId={boatId}
             roomNumber={roomNum}
