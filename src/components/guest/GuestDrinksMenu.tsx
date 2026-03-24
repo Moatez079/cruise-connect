@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { t } from '@/lib/languages';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { ChevronLeft, Loader2, ShoppingCart, Plus, Minus, Send } from 'lucide-react';
+import { ChevronLeft, Loader2, Plus, Minus, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBoatBranding } from '@/components/guest/BoatBrandingContext';
 
@@ -23,6 +23,19 @@ interface MenuItem {
   available: boolean;
 }
 
+// Map DB category keys to translation keys
+const CATEGORY_TRANSLATION_MAP: Record<string, string> = {
+  hot_drinks: 'hotDrinks',
+  cold_drinks: 'coldDrinks',
+  juices: 'juices',
+  cocktails: 'cocktails',
+  beer: 'beer',
+  wine: 'wine',
+  spirits: 'spirits',
+  soft_drinks: 'softDrinks',
+  other: 'other',
+};
+
 const CATEGORY_EMOJIS: Record<string, string> = {
   hot_drinks: '☕',
   cold_drinks: '🧊',
@@ -42,6 +55,7 @@ const GuestDrinksMenu = ({ language, boatId, roomNumber, onBack, onSuccess }: Pr
   const [sending, setSending] = useState(false);
   const { toast } = useToast();
   const { primaryColor } = useBoatBranding();
+  const isRTL = language === 'ar';
 
   useEffect(() => {
     const fetchMenu = async () => {
@@ -80,7 +94,7 @@ const GuestDrinksMenu = ({ language, boatId, roomNumber, onBack, onSuccess }: Pr
     setSending(true);
 
     try {
-      // Build order message
+      // Build order message in English for staff
       const orderLines = Object.entries(cart).map(([id, qty]) => {
         const item = items.find(i => i.id === id);
         return item ? `${qty}x ${item.name}` : '';
@@ -88,11 +102,21 @@ const GuestDrinksMenu = ({ language, boatId, roomNumber, onBack, onSuccess }: Pr
 
       const message = `Drinks order:\n${orderLines.join('\n')}`;
 
+      // Build original message in guest language
+      const guestOrderLines = Object.entries(cart).map(([id, qty]) => {
+        const item = items.find(i => i.id === id);
+        if (!item) return '';
+        const displayName = (isRTL && item.name_ar) ? item.name_ar : item.name;
+        return `${qty}x ${displayName}`;
+      }).filter(Boolean);
+
+      const originalMessage = `${t(language, 'drinks')}:\n${guestOrderLines.join('\n')}`;
+
       const { error } = await supabase.from('requests').insert({
         boat_id: boatId,
         room_number: roomNumber,
         category: 'drinks' as any,
-        original_message: message,
+        original_message: originalMessage,
         translated_message: message,
         guest_language: language,
       });
@@ -115,16 +139,22 @@ const GuestDrinksMenu = ({ language, boatId, roomNumber, onBack, onSuccess }: Pr
   }, {});
 
   const getItemName = (item: MenuItem) => {
-    if (language === 'ar' && item.name_ar) return item.name_ar;
+    if (isRTL && item.name_ar) return item.name_ar;
     return item.name;
   };
 
+  const getCategoryLabel = (category: string) => {
+    const translationKey = CATEGORY_TRANSLATION_MAP[category];
+    if (translationKey) return t(language, translationKey);
+    return category.replace(/_/g, ' ');
+  };
+
   return (
-    <div className="min-h-screen flex flex-col px-4 py-6 pb-24">
+    <div className="min-h-screen flex flex-col px-4 py-6 pb-24" dir={isRTL ? 'rtl' : 'ltr'}>
       <div className="w-full max-w-md mx-auto animate-fade-in">
         <div className="flex items-center gap-3 mb-6">
           <Button variant="ghost" size="icon" onClick={onBack}>
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className={`w-5 h-5 ${isRTL ? 'rotate-180' : ''}`} />
           </Button>
           <h1 className="font-serif text-lg font-semibold">{t(language, 'drinks')}</h1>
         </div>
@@ -135,7 +165,7 @@ const GuestDrinksMenu = ({ language, boatId, roomNumber, onBack, onSuccess }: Pr
           </div>
         ) : items.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-muted-foreground">No drinks available at the moment.</p>
+            <p className="text-muted-foreground">{t(language, 'noDrinksAvailable')}</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -143,7 +173,7 @@ const GuestDrinksMenu = ({ language, boatId, roomNumber, onBack, onSuccess }: Pr
               <div key={category}>
                 <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 flex items-center gap-2">
                   <span>{CATEGORY_EMOJIS[category] || '🍽️'}</span>
-                  <span>{category.replace(/_/g, ' ')}</span>
+                  <span>{getCategoryLabel(category)}</span>
                 </h2>
                 <div className="space-y-2">
                   {categoryItems.map(item => {
@@ -154,7 +184,7 @@ const GuestDrinksMenu = ({ language, boatId, roomNumber, onBack, onSuccess }: Pr
                         className="flex items-center gap-3 p-4 rounded-xl border border-border/50 bg-card"
                       >
                         <div className="flex-1 min-w-0">
-                          <p className="font-medium text-foreground text-sm" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+                          <p className="font-medium text-foreground text-sm">
                             {getItemName(item)}
                           </p>
                           {item.price > 0 && (
