@@ -341,6 +341,12 @@ const Reports = () => {
               <><Bot className="w-4 h-4 mr-2" /> Generate Report</>
             )}
           </Button>
+
+          {report && (
+            <Button variant="outline" onClick={exportPDF}>
+              <Download className="w-4 h-4 mr-2" /> Export PDF
+            </Button>
+          )}
         </div>
 
         {/* Report Content */}
