@@ -15,6 +15,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Download,
   FileText,
   Lightbulb,
   Loader2,
@@ -24,6 +25,8 @@ import {
   Star,
   TrendingUp,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Boat {
   id: string;
@@ -148,6 +151,143 @@ const Reports = () => {
 
   const boatName = boats.find((b) => b.id === selectedBoat)?.name || '';
 
+  const exportPDF = () => {
+    if (!report) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const contentWidth = pageWidth - margin * 2;
+    let y = 20;
+
+    // Header
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(26, 54, 93);
+    doc.text(`${boatName} — Daily Report`, margin, y);
+    y += 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text(
+      new Date(report.report_date + 'T00:00:00').toLocaleDateString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+      }),
+      margin, y
+    );
+    y += 4;
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 10;
+
+    // Stats table
+    autoTable(doc, {
+      startY: y,
+      head: [['Total Requests', 'Completed', 'Pending', 'Avg Rating', 'Feedbacks']],
+      body: [[
+        report.total_requests.toString(),
+        report.completed_requests.toString(),
+        report.pending_requests.toString(),
+        report.avg_feedback_score !== null ? `${Number(report.avg_feedback_score).toFixed(1)} / 5` : '—',
+        report.total_feedbacks.toString(),
+      ]],
+      theme: 'grid',
+      headStyles: { fillColor: [26, 54, 93], fontSize: 9 },
+      bodyStyles: { fontSize: 10, halign: 'center' },
+      margin: { left: margin, right: margin },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+
+    // Request Breakdown
+    const breakdownEntries = Object.entries(report.request_breakdown || {});
+    if (breakdownEntries.length > 0) {
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(26, 54, 93);
+      doc.text('Request Breakdown', margin, y);
+      y += 6;
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Category', 'Count', '% of Total']],
+        body: breakdownEntries
+          .sort(([, a], [, b]) => (b as number) - (a as number))
+          .map(([cat, count]) => [
+            CATEGORY_LABELS[cat] || cat,
+            (count as number).toString(),
+            report.total_requests > 0
+              ? `${(((count as number) / report.total_requests) * 100).toFixed(0)}%`
+              : '0%',
+          ]),
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235], fontSize: 9 },
+        bodyStyles: { fontSize: 10 },
+        margin: { left: margin, right: margin },
+      });
+      y = (doc as any).lastAutoTable.finalY + 10;
+    }
+
+    // AI Summary
+    if (report.ai_summary) {
+      if (y > 240) { doc.addPage(); y = 20; }
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(26, 54, 93);
+      doc.text('AI Executive Summary', margin, y);
+      y += 7;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(50, 50, 50);
+      const summaryLines = doc.splitTextToSize(report.ai_summary, contentWidth);
+      doc.text(summaryLines, margin, y);
+      y += summaryLines.length * 5 + 8;
+    }
+
+    // Suggestions
+    if (report.ai_suggestions && report.ai_suggestions.length > 0) {
+      if (y > 220) { doc.addPage(); y = 20; }
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(26, 54, 93);
+      doc.text('Improvement Suggestions', margin, y);
+      y += 6;
+
+      autoTable(doc, {
+        startY: y,
+        head: [['Priority', 'Suggestion', 'Details']],
+        body: report.ai_suggestions.map((s) => [
+          s.priority.toUpperCase(),
+          s.title,
+          s.description,
+        ]),
+        theme: 'striped',
+        headStyles: { fillColor: [37, 99, 235], fontSize: 9 },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 22, halign: 'center', fontStyle: 'bold' },
+          1: { cellWidth: 45 },
+          2: { cellWidth: 'auto' },
+        },
+        margin: { left: margin, right: margin },
+      });
+    }
+
+    // Footer
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setTextColor(150, 150, 150);
+      doc.text(
+        `${boatName} • Generated ${new Date().toLocaleString()} • Page ${i}/${pageCount}`,
+        pageWidth / 2, doc.internal.pageSize.getHeight() - 10,
+        { align: 'center' }
+      );
+    }
+
+    doc.save(`${boatName}_report_${report.report_date}.pdf`);
+  };
+
   if (loading) {
     return (
       <DashboardLayout title="AI Reports" description="AI-powered daily operational insights">
@@ -201,6 +341,12 @@ const Reports = () => {
               <><Bot className="w-4 h-4 mr-2" /> Generate Report</>
             )}
           </Button>
+
+          {report && (
+            <Button variant="outline" onClick={exportPDF}>
+              <Download className="w-4 h-4 mr-2" /> Export PDF
+            </Button>
+          )}
         </div>
 
         {/* Report Content */}
