@@ -13,6 +13,9 @@ import UsersPage from "./pages/Users";
 import Rooms from "./pages/Rooms";
 import GuestApp from "./pages/GuestApp";
 import Requests from "./pages/Requests";
+import Invoices from "./pages/Invoices";
+import InvoicePrint from "./pages/InvoicePrint";
+import GuestInvoice from "./pages/GuestInvoice";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,8 +35,11 @@ const App = () => (
             <Route path="/users" element={<ProtectedRoute requiredRole="owner"><UsersPage /></ProtectedRoute>} />
             <Route path="/rooms" element={<ProtectedRoute><Rooms /></ProtectedRoute>} />
             <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
-            {/* Guest app - no auth required */}
+            <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
+            <Route path="/invoice-print/:invoiceId" element={<ProtectedRoute><InvoicePrint /></ProtectedRoute>} />
+            {/* Guest routes - no auth */}
             <Route path="/guest/:boatId/:roomNumber" element={<GuestApp />} />
+            <Route path="/guest/:boatId/:roomNumber/invoice" element={<GuestInvoice />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

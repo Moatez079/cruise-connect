@@ -6,6 +6,7 @@ import GuestMainMenu from '@/components/guest/GuestMainMenu';
 import GuestRoomService from '@/components/guest/GuestRoomService';
 import GuestCustomRequest from '@/components/guest/GuestCustomRequest';
 import GuestSuccess from '@/components/guest/GuestSuccess';
+import GuestInvoice from '@/pages/GuestInvoice';
 
 type GuestView = 'language' | 'menu' | 'room_service' | 'drinks' | 'custom' | 'invoice' | 'success';
 
@@ -31,7 +32,6 @@ const GuestApp = () => {
 
   const handleBack = () => {
     if (view === 'menu') setView('language');
-    else if (view === 'success') setView('menu');
     else setView('menu');
   };
 
@@ -48,6 +48,7 @@ const GuestApp = () => {
         <GuestMainMenu
           language={language}
           roomNumber={roomNum}
+          boatId={boatId}
           onNavigate={(v) => setView(v as GuestView)}
           onBack={handleBack}
         />
@@ -69,6 +70,9 @@ const GuestApp = () => {
           onBack={handleBack}
           onSuccess={handleRequestSent}
         />
+      )}
+      {view === 'invoice' && (
+        <GuestInvoice />
       )}
       {view === 'success' && (
         <GuestSuccess language={language} onBack={handleBack} />
