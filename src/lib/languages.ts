@@ -167,6 +167,17 @@ export const UI_TRANSLATIONS: Record<string, Record<string, string>> = {
     sending: 'Enviando...',
     room: 'Habitación',
     thankYou: '¡Gracias!',
+    feedback: 'Opinión',
+    overallRating: 'Experiencia general',
+    serviceRating: 'Calidad del servicio',
+    cleanlinessRating: 'Limpieza',
+    foodRating: 'Comida y bebidas',
+    feedbackComment: 'Comentarios adicionales',
+    feedbackPlaceholder: 'Cuéntenos sobre su experiencia...',
+    submitFeedback: 'Enviar opinión',
+    ratingRequired: 'Por favor califique su experiencia general',
+    feedbackSent: '¡Opinión enviada!',
+    feedbackSentDesc: '¡Gracias por sus comentarios!',
   },
 };
 
