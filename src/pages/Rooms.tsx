@@ -105,8 +105,8 @@ const Rooms = () => {
   if (printMode) {
     return (
       <div className="p-8 bg-background" id="print-qr">
-        <style>{`@media print { body { background: white !important; color: black !important; } }`}</style>
-        <h1 className="text-2xl font-serif font-bold mb-6 text-center print:text-black">
+        <style>{`@media print { body { background: #fff !important; color: #000 !important; } .print-text { color: #000 !important; } .print-sub { color: #666 !important; } }`}</style>
+        <h1 className="text-2xl font-serif font-bold mb-6 text-center print-text">
           QR Codes — {boats.find(b => b.id === selectedBoatId)?.name}
         </h1>
         <div className="grid grid-cols-3 gap-6">
