@@ -85,6 +85,62 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_reports: {
+        Row: {
+          ai_suggestions: Json | null
+          ai_summary: string | null
+          avg_feedback_score: number | null
+          boat_id: string
+          completed_requests: number
+          created_at: string
+          generated_by: string | null
+          id: string
+          pending_requests: number
+          report_date: string
+          request_breakdown: Json | null
+          total_feedbacks: number
+          total_requests: number
+        }
+        Insert: {
+          ai_suggestions?: Json | null
+          ai_summary?: string | null
+          avg_feedback_score?: number | null
+          boat_id: string
+          completed_requests?: number
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          pending_requests?: number
+          report_date?: string
+          request_breakdown?: Json | null
+          total_feedbacks?: number
+          total_requests?: number
+        }
+        Update: {
+          ai_suggestions?: Json | null
+          ai_summary?: string | null
+          avg_feedback_score?: number | null
+          boat_id?: string
+          completed_requests?: number
+          created_at?: string
+          generated_by?: string | null
+          id?: string
+          pending_requests?: number
+          report_date?: string
+          request_breakdown?: Json | null
+          total_feedbacks?: number
+          total_requests?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_reports_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_feedback: {
         Row: {
           boat_id: string
