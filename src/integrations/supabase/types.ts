@@ -320,6 +320,53 @@ export type Database = {
           },
         ]
       }
+      menu_items: {
+        Row: {
+          available: boolean
+          boat_id: string
+          category: string
+          created_at: string
+          id: string
+          name: string
+          name_ar: string | null
+          price: number
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          available?: boolean
+          boat_id: string
+          category?: string
+          created_at?: string
+          id?: string
+          name: string
+          name_ar?: string | null
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          available?: boolean
+          boat_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          name_ar?: string | null
+          price?: number
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
