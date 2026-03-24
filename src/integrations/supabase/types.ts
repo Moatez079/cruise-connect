@@ -44,6 +44,41 @@ export type Database = {
         }
         Relationships: []
       }
+      guest_sessions: {
+        Row: {
+          boat_id: string
+          created_at: string
+          expires_at: string
+          guest_language: string
+          id: string
+          room_number: number
+        }
+        Insert: {
+          boat_id: string
+          created_at?: string
+          expires_at?: string
+          guest_language?: string
+          id?: string
+          room_number: number
+        }
+        Update: {
+          boat_id?: string
+          created_at?: string
+          expires_at?: string
+          guest_language?: string
+          id?: string
+          room_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_sessions_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -70,6 +105,63 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      requests: {
+        Row: {
+          boat_id: string
+          category: Database["public"]["Enums"]["request_category"]
+          created_at: string
+          guest_language: string
+          guest_session_id: string | null
+          id: string
+          original_message: string | null
+          room_number: number
+          status: Database["public"]["Enums"]["request_status"]
+          translated_message: string | null
+          updated_at: string
+        }
+        Insert: {
+          boat_id: string
+          category: Database["public"]["Enums"]["request_category"]
+          created_at?: string
+          guest_language?: string
+          guest_session_id?: string | null
+          id?: string
+          original_message?: string | null
+          room_number: number
+          status?: Database["public"]["Enums"]["request_status"]
+          translated_message?: string | null
+          updated_at?: string
+        }
+        Update: {
+          boat_id?: string
+          category?: Database["public"]["Enums"]["request_category"]
+          created_at?: string
+          guest_language?: string
+          guest_session_id?: string | null
+          id?: string
+          original_message?: string | null
+          room_number?: number
+          status?: Database["public"]["Enums"]["request_status"]
+          translated_message?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "requests_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "requests_guest_session_id_fkey"
+            columns: ["guest_session_id"]
+            isOneToOne: false
+            referencedRelation: "guest_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rooms: {
         Row: {
@@ -105,6 +197,50 @@ export type Database = {
             columns: ["boat_id"]
             isOneToOne: false
             referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      translation_logs: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          original_text: string
+          provider: string
+          request_id: string | null
+          source_language: string
+          target_language: string
+          translated_text: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          original_text: string
+          provider?: string
+          request_id?: string | null
+          source_language: string
+          target_language?: string
+          translated_text: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          original_text?: string
+          provider?: string
+          request_id?: string | null
+          source_language?: string
+          target_language?: string
+          translated_text?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "translation_logs_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "requests"
             referencedColumns: ["id"]
           },
         ]
@@ -175,6 +311,15 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "boat_admin" | "receptionist"
+      request_category:
+        | "towels"
+        | "help_opening_room"
+        | "cleaning"
+        | "bathroom_service"
+        | "do_not_disturb"
+        | "drinks"
+        | "custom"
+      request_status: "pending" | "in_progress" | "done"
       room_status: "available" | "occupied" | "maintenance" | "do_not_disturb"
     }
     CompositeTypes: {
@@ -304,6 +449,16 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "boat_admin", "receptionist"],
+      request_category: [
+        "towels",
+        "help_opening_room",
+        "cleaning",
+        "bathroom_service",
+        "do_not_disturb",
+        "drinks",
+        "custom",
+      ],
+      request_status: ["pending", "in_progress", "done"],
       room_status: ["available", "occupied", "maintenance", "do_not_disturb"],
     },
   },
