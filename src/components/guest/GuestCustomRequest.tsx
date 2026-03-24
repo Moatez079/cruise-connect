@@ -73,11 +73,11 @@ const GuestCustomRequest = ({ language, boatId, roomNumber, onBack, onSuccess }:
   };
 
   return (
-    <div className="min-h-screen flex flex-col px-4 py-6">
+    <div className="min-h-screen flex flex-col px-4 py-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div className="w-full max-w-md mx-auto animate-fade-in">
         <div className="flex items-center gap-3 mb-8">
           <Button variant="ghost" size="icon" onClick={onBack}>
-            <ChevronLeft className="w-5 h-5" />
+            <ChevronLeft className={`w-5 h-5 ${language === 'ar' ? 'rotate-180' : ''}`} />
           </Button>
           <h1 className="font-serif text-lg font-semibold">{t(language, 'customRequest')}</h1>
         </div>
