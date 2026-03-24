@@ -14,6 +14,7 @@ const InvoicePrint = () => {
   const [items, setItems] = useState<InvoiceItem[]>([]);
   const [boatName, setBoatName] = useState('');
   const [translatedFarewell, setTranslatedFarewell] = useState('');
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,22 +24,24 @@ const InvoicePrint = () => {
       if (!inv) { setLoading(false); return; }
       setInvoice(inv);
 
-      const [itemsRes, boatRes] = await Promise.all([
+      const [itemsRes, boatRes, settingsRes] = await Promise.all([
         supabase.from('invoice_items').select('*').eq('invoice_id', inv.id).order('created_at'),
         supabase.from('boats').select('name').eq('id', inv.boat_id).single(),
+        (supabase.from('boat_settings' as any) as any).select('farewell_message, logo_url').eq('boat_id', inv.boat_id).maybeSingle(),
       ]);
       if (itemsRes.data) setItems(itemsRes.data);
       if (boatRes.data) setBoatName(boatRes.data.name);
 
+      // Use boat_settings farewell if available, otherwise fall back to invoice's own
+      const settings = settingsRes.data as { farewell_message?: string; logo_url?: string } | null;
+      if (settings?.logo_url) setLogoUrl(settings.logo_url);
+      const farewellSource = settings?.farewell_message || inv.farewell_message;
+
       // Translate farewell message if not English
-      if (inv.guest_language !== 'en' && inv.farewell_message) {
+      if (inv.guest_language !== 'en' && farewellSource) {
         try {
           const res = await supabase.functions.invoke('translate', {
-            body: {
-              text: inv.farewell_message,
-              sourceLang: 'en',
-              targetLang: inv.guest_language,
-            },
+            body: { text: farewellSource, sourceLang: 'en', targetLang: inv.guest_language },
           });
           if (res.data?.translatedText) {
             setTranslatedFarewell(res.data.translatedText);
@@ -46,10 +49,12 @@ const InvoicePrint = () => {
         } catch {
           // Fallback to English
         }
+      } else if (farewellSource && farewellSource !== inv.farewell_message) {
+        // English but using settings message instead of invoice default
+        setTranslatedFarewell(farewellSource);
       }
 
       setLoading(false);
-      // Auto print after short delay
       setTimeout(() => window.print(), 800);
     };
     fetchData();
