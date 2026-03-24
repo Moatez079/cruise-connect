@@ -79,6 +79,97 @@ export type Database = {
           },
         ]
       }
+      invoice_items: {
+        Row: {
+          category: Database["public"]["Enums"]["invoice_category"]
+          created_at: string
+          description: string
+          id: string
+          invoice_id: string
+          quantity: number
+          unit_price: number
+          updated_at: string
+        }
+        Insert: {
+          category?: Database["public"]["Enums"]["invoice_category"]
+          created_at?: string
+          description: string
+          id?: string
+          invoice_id: string
+          quantity?: number
+          unit_price: number
+          updated_at?: string
+        }
+        Update: {
+          category?: Database["public"]["Enums"]["invoice_category"]
+          created_at?: string
+          description?: string
+          id?: string
+          invoice_id?: string
+          quantity?: number
+          unit_price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          boat_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          farewell_message: string | null
+          guest_language: string
+          id: string
+          notes: string | null
+          room_number: number
+          status: Database["public"]["Enums"]["invoice_status"]
+          updated_at: string
+        }
+        Insert: {
+          boat_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          farewell_message?: string | null
+          guest_language?: string
+          id?: string
+          notes?: string | null
+          room_number: number
+          status?: Database["public"]["Enums"]["invoice_status"]
+          updated_at?: string
+        }
+        Update: {
+          boat_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          farewell_message?: string | null
+          guest_language?: string
+          id?: string
+          notes?: string | null
+          room_number?: number
+          status?: Database["public"]["Enums"]["invoice_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -311,6 +402,14 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "boat_admin" | "receptionist"
+      invoice_category:
+        | "restaurant"
+        | "bar"
+        | "massage"
+        | "internet"
+        | "room_service"
+        | "custom"
+      invoice_status: "draft" | "visible" | "paid" | "closed"
       request_category:
         | "towels"
         | "help_opening_room"
@@ -449,6 +548,15 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "boat_admin", "receptionist"],
+      invoice_category: [
+        "restaurant",
+        "bar",
+        "massage",
+        "internet",
+        "room_service",
+        "custom",
+      ],
+      invoice_status: ["draft", "visible", "paid", "closed"],
       request_category: [
         "towels",
         "help_opening_room",
