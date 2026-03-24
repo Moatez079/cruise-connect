@@ -1,4 +1,4 @@
-import { Anchor, Ship, Users, QrCode, Settings, LogOut, LayoutDashboard, MessageSquare, Receipt, Star } from 'lucide-react';
+import { Anchor, Ship, Users, QrCode, Settings, LogOut, LayoutDashboard, MessageSquare, Receipt, Star, Bot } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
 import { useAuth } from '@/hooks/useAuth';
 import {
@@ -27,6 +27,7 @@ export function AppSidebar() {
     { title: 'Requests', url: '/requests', icon: MessageSquare },
     { title: 'Invoices', url: '/invoices', icon: Receipt },
     { title: 'Feedback', url: '/feedback', icon: Star },
+    { title: 'AI Reports', url: '/reports', icon: Bot },
     { title: 'Rooms', url: '/rooms', icon: QrCode },
     { title: 'Users', url: '/users', icon: Users },
     { title: 'Settings', url: '/settings', icon: Settings },
@@ -37,6 +38,7 @@ export function AppSidebar() {
     { title: 'Requests', url: '/requests', icon: MessageSquare },
     { title: 'Invoices', url: '/invoices', icon: Receipt },
     { title: 'Feedback', url: '/feedback', icon: Star },
+    { title: 'AI Reports', url: '/reports', icon: Bot },
     { title: 'Rooms', url: '/rooms', icon: QrCode },
   ];
 
