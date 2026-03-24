@@ -3,6 +3,7 @@ import { t } from '@/lib/languages';
 import { supabase } from '@/integrations/supabase/client';
 import { Anchor, ChevronLeft, ConciergeBell, GlassWater, MessageSquare, Receipt, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useBoatBranding } from '@/components/guest/BoatBrandingContext';
 
 interface Props {
   language: string;
@@ -14,9 +15,9 @@ interface Props {
 
 const GuestMainMenu = ({ language, roomNumber, boatId, onNavigate, onBack }: Props) => {
   const [showInvoice, setShowInvoice] = useState(false);
+  const { logoUrl, primaryColor, boatName } = useBoatBranding();
 
   useEffect(() => {
-    // Check if invoice is visible for this room
     const checkInvoice = async () => {
       const { data } = await supabase
         .from('invoices')
@@ -31,11 +32,19 @@ const GuestMainMenu = ({ language, roomNumber, boatId, onNavigate, onBack }: Pro
   }, [boatId, roomNumber]);
 
   const menuItems = [
-    { id: 'room_service', icon: ConciergeBell, label: t(language, 'roomService'), color: 'text-primary' },
-    { id: 'drinks', icon: GlassWater, label: t(language, 'drinks'), color: 'text-primary' },
-    { id: 'custom', icon: MessageSquare, label: t(language, 'customRequest'), color: 'text-primary' },
-    { id: 'feedback', icon: Star, label: t(language, 'feedback'), color: 'text-primary' },
+    { id: 'room_service', icon: ConciergeBell, label: t(language, 'roomService') },
+    { id: 'drinks', icon: GlassWater, label: t(language, 'drinks') },
+    { id: 'custom', icon: MessageSquare, label: t(language, 'customRequest') },
+    { id: 'feedback', icon: Star, label: t(language, 'feedback') },
   ];
+
+  const accentStyle = primaryColor ? { color: primaryColor } : undefined;
+  const accentBgStyle = primaryColor
+    ? { backgroundColor: `${primaryColor}15` }
+    : undefined;
+  const accentBorderStyle = primaryColor
+    ? { borderColor: `${primaryColor}40` }
+    : undefined;
 
   return (
     <div className="min-h-screen flex flex-col px-4 py-6">
@@ -47,8 +56,14 @@ const GuestMainMenu = ({ language, roomNumber, boatId, onNavigate, onBack }: Pro
           </Button>
           <div className="flex-1">
             <div className="flex items-center gap-2">
-              <Anchor className="w-5 h-5 text-primary" />
-              <h1 className="font-serif text-lg font-semibold">{t(language, 'welcome')}</h1>
+              {logoUrl ? (
+                <img src={logoUrl} alt={boatName} className="w-8 h-8 rounded-md object-contain" />
+              ) : (
+                <Anchor className="w-5 h-5 text-primary" style={accentStyle} />
+              )}
+              <h1 className="font-serif text-lg font-semibold">
+                {boatName || t(language, 'welcome')}
+              </h1>
             </div>
             <p className="text-xs text-muted-foreground">{t(language, 'room')} {roomNumber}</p>
           </div>
@@ -61,22 +76,40 @@ const GuestMainMenu = ({ language, roomNumber, boatId, onNavigate, onBack }: Pro
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className="w-full flex items-center gap-4 p-5 rounded-xl border border-border/50 bg-card hover:border-primary/30 hover:bg-primary/5 transition-all text-left"
+              style={{
+                ...(primaryColor ? { '--tw-ring-color': primaryColor } as any : {}),
+              }}
+              onMouseEnter={(e) => {
+                if (accentBorderStyle) (e.currentTarget.style.borderColor = accentBorderStyle.borderColor);
+                if (accentBgStyle) (e.currentTarget.style.backgroundColor = accentBgStyle.backgroundColor);
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = '';
+                e.currentTarget.style.backgroundColor = '';
+              }}
             >
-              <div className="p-3 rounded-lg bg-primary/10">
-                <item.icon className={`w-6 h-6 ${item.color}`} />
+              <div
+                className="p-3 rounded-lg bg-primary/10"
+                style={accentBgStyle}
+              >
+                <item.icon className="w-6 h-6 text-primary" style={accentStyle} />
               </div>
               <span className="text-base font-medium text-foreground">{item.label}</span>
             </button>
           ))}
 
-          {/* Invoice - only shown when enabled by reception */}
+          {/* Invoice */}
           {showInvoice && (
             <button
               onClick={() => onNavigate('invoice')}
               className="w-full flex items-center gap-4 p-5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all text-left"
+              style={{
+                ...(accentBorderStyle || {}),
+                ...(accentBgStyle || {}),
+              }}
             >
-              <div className="p-3 rounded-lg bg-primary/10">
-                <Receipt className="w-6 h-6 text-primary" />
+              <div className="p-3 rounded-lg bg-primary/10" style={accentBgStyle}>
+                <Receipt className="w-6 h-6 text-primary" style={accentStyle} />
               </div>
               <span className="text-base font-medium text-foreground">{t(language, 'invoice')}</span>
             </button>

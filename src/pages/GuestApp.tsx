@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { LANGUAGES, t } from '@/lib/languages';
+import { BoatBrandingProvider } from '@/components/guest/BoatBrandingContext';
 import GuestLanguageSelect from '@/components/guest/GuestLanguageSelect';
 import GuestMainMenu from '@/components/guest/GuestMainMenu';
 import GuestRoomService from '@/components/guest/GuestRoomService';
@@ -41,53 +42,55 @@ const GuestApp = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {view === 'language' && (
-        <GuestLanguageSelect onSelect={handleLanguageSelect} />
-      )}
-      {view === 'menu' && (
-        <GuestMainMenu
-          language={language}
-          roomNumber={roomNum}
-          boatId={boatId}
-          onNavigate={(v) => setView(v as GuestView)}
-          onBack={handleBack}
-        />
-      )}
-      {view === 'room_service' && (
-        <GuestRoomService
-          language={language}
-          boatId={boatId}
-          roomNumber={roomNum}
-          onBack={handleBack}
-          onSuccess={handleRequestSent}
-        />
-      )}
-      {view === 'custom' && (
-        <GuestCustomRequest
-          language={language}
-          boatId={boatId}
-          roomNumber={roomNum}
-          onBack={handleBack}
-          onSuccess={handleRequestSent}
-        />
-      )}
-      {view === 'feedback' && (
-        <GuestFeedback
-          language={language}
-          boatId={boatId}
-          roomNumber={roomNum}
-          onBack={handleBack}
-          onSuccess={handleRequestSent}
-        />
-      )}
-      {view === 'invoice' && (
-        <GuestInvoice />
-      )}
-      {view === 'success' && (
-        <GuestSuccess language={language} onBack={handleBack} />
-      )}
-    </div>
+    <BoatBrandingProvider boatId={boatId}>
+      <div className="min-h-screen bg-background">
+        {view === 'language' && (
+          <GuestLanguageSelect onSelect={handleLanguageSelect} />
+        )}
+        {view === 'menu' && (
+          <GuestMainMenu
+            language={language}
+            roomNumber={roomNum}
+            boatId={boatId}
+            onNavigate={(v) => setView(v as GuestView)}
+            onBack={handleBack}
+          />
+        )}
+        {view === 'room_service' && (
+          <GuestRoomService
+            language={language}
+            boatId={boatId}
+            roomNumber={roomNum}
+            onBack={handleBack}
+            onSuccess={handleRequestSent}
+          />
+        )}
+        {view === 'custom' && (
+          <GuestCustomRequest
+            language={language}
+            boatId={boatId}
+            roomNumber={roomNum}
+            onBack={handleBack}
+            onSuccess={handleRequestSent}
+          />
+        )}
+        {view === 'feedback' && (
+          <GuestFeedback
+            language={language}
+            boatId={boatId}
+            roomNumber={roomNum}
+            onBack={handleBack}
+            onSuccess={handleRequestSent}
+          />
+        )}
+        {view === 'invoice' && (
+          <GuestInvoice />
+        )}
+        {view === 'success' && (
+          <GuestSuccess language={language} onBack={handleBack} />
+        )}
+      </div>
+    </BoatBrandingProvider>
   );
 };
 
