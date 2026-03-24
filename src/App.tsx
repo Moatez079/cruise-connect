@@ -17,6 +17,7 @@ import Invoices from "./pages/Invoices";
 import InvoicePrint from "./pages/InvoicePrint";
 import GuestInvoice from "./pages/GuestInvoice";
 import Feedback from "./pages/Feedback";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
             <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
             <Route path="/feedback" element={<ProtectedRoute><Feedback /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute requiredRole="owner"><Settings /></ProtectedRoute>} />
             <Route path="/invoice-print/:invoiceId" element={<ProtectedRoute><InvoicePrint /></ProtectedRoute>} />
             {/* Guest routes - no auth */}
             <Route path="/guest/:boatId/:roomNumber" element={<GuestApp />} />
