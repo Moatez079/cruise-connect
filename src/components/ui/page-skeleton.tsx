@@ -77,27 +77,3 @@ export const PageSkeleton = {
   Table: TableSkeleton,
   Dashboard: DashboardSkeleton,
 };
-  <div className="space-y-6">
-    <div className="rounded-xl border border-border/50 bg-card p-6">
-      <div className="flex items-center gap-4">
-        <Skeleton className="h-14 w-14 rounded-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-      </div>
-    </div>
-    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-      <CardSkeleton />
-      <CardSkeleton />
-      <CardSkeleton />
-    </div>
-  </div>
-);
-
-export const PageSkeleton = {
-  Cards: CardsSkeleton,
-  List: ListSkeleton,
-  Table: TableSkeleton,
-  Dashboard: DashboardSkeleton,
-};
