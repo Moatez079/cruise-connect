@@ -14,28 +14,14 @@ interface Props {
 }
 
 const GuestMainMenu = ({ language, roomNumber, boatId, onNavigate, onBack }: Props) => {
-  const [showInvoice, setShowInvoice] = useState(false);
   const { logoUrl, primaryColor, boatName } = useBoatBranding();
-
-  useEffect(() => {
-    const checkInvoice = async () => {
-      const { data } = await supabase
-        .from('invoices')
-        .select('id')
-        .eq('boat_id', boatId)
-        .eq('room_number', roomNumber)
-        .in('status', ['visible', 'paid', 'closed'])
-        .limit(1);
-      if (data && data.length > 0) setShowInvoice(true);
-    };
-    checkInvoice();
-  }, [boatId, roomNumber]);
 
   const menuItems = [
     { id: 'room_service', icon: ConciergeBell, label: t(language, 'roomService') },
     { id: 'drinks', icon: GlassWater, label: t(language, 'drinks') },
     { id: 'custom', icon: MessageSquare, label: t(language, 'customRequest') },
     { id: 'feedback', icon: Star, label: t(language, 'feedback') },
+    { id: 'invoice', icon: Receipt, label: t(language, 'invoice') },
   ];
 
   const accentStyle = primaryColor ? { color: primaryColor } : undefined;
@@ -97,23 +83,6 @@ const GuestMainMenu = ({ language, roomNumber, boatId, onNavigate, onBack }: Pro
               <span className="text-base font-medium text-foreground">{item.label}</span>
             </button>
           ))}
-
-          {/* Invoice */}
-          {showInvoice && (
-            <button
-              onClick={() => onNavigate('invoice')}
-              className="w-full flex items-center gap-4 p-5 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 transition-all text-left"
-              style={{
-                ...(accentBorderStyle || {}),
-                ...(accentBgStyle || {}),
-              }}
-            >
-              <div className="p-3 rounded-lg bg-primary/10" style={accentBgStyle}>
-                <Receipt className="w-6 h-6 text-primary" style={accentStyle} />
-              </div>
-              <span className="text-base font-medium text-foreground">{t(language, 'invoice')}</span>
-            </button>
-          )}
         </div>
       </div>
     </div>
