@@ -47,7 +47,7 @@ const App = () => (
             <Route path="/invoice-print/:invoiceId" element={<ProtectedRoute><InvoicePrint /></ProtectedRoute>} />
             {/* Guest routes - no auth */}
             <Route path="/guest/:boatId/:roomNumber" element={<GuestApp />} />
-            <Route path="/guest/:boatId/:roomNumber/invoice" element={<GuestInvoice />} />
+            <Route path="/guest/:boatId/:roomNumber/invoice" element={<GuestInvoice language="en" />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
