@@ -453,29 +453,35 @@ export type Database = {
       }
       rooms: {
         Row: {
+          bed_type: Database["public"]["Enums"]["bed_type"]
           boat_id: string
           created_at: string
           id: string
           qr_code_data: string | null
           room_number: number
+          room_type: Database["public"]["Enums"]["room_type"]
           status: Database["public"]["Enums"]["room_status"]
           updated_at: string
         }
         Insert: {
+          bed_type?: Database["public"]["Enums"]["bed_type"]
           boat_id: string
           created_at?: string
           id?: string
           qr_code_data?: string | null
           room_number: number
+          room_type?: Database["public"]["Enums"]["room_type"]
           status?: Database["public"]["Enums"]["room_status"]
           updated_at?: string
         }
         Update: {
+          bed_type?: Database["public"]["Enums"]["bed_type"]
           boat_id?: string
           created_at?: string
           id?: string
           qr_code_data?: string | null
           room_number?: number
+          room_type?: Database["public"]["Enums"]["room_type"]
           status?: Database["public"]["Enums"]["room_status"]
           updated_at?: string
         }
@@ -599,6 +605,7 @@ export type Database = {
     }
     Enums: {
       app_role: "owner" | "boat_admin" | "receptionist"
+      bed_type: "king" | "twin"
       invoice_category:
         | "restaurant"
         | "bar"
@@ -617,6 +624,7 @@ export type Database = {
         | "custom"
       request_status: "pending" | "in_progress" | "done"
       room_status: "available" | "occupied" | "maintenance" | "do_not_disturb"
+      room_type: "room" | "suite"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -745,6 +753,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["owner", "boat_admin", "receptionist"],
+      bed_type: ["king", "twin"],
       invoice_category: [
         "restaurant",
         "bar",
@@ -765,6 +774,7 @@ export const Constants = {
       ],
       request_status: ["pending", "in_progress", "done"],
       room_status: ["available", "occupied", "maintenance", "do_not_disturb"],
+      room_type: ["room", "suite"],
     },
   },
 } as const
