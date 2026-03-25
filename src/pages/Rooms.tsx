@@ -98,6 +98,34 @@ const Rooms = () => {
     if (data) setRooms(data);
   };
 
+  const handleRenameRoom = async () => {
+    if (!selectedRoom) return;
+    const num = parseInt(newRoomNumber);
+    if (!num || num < 1) {
+      toast({ title: 'Invalid room number', variant: 'destructive' });
+      return;
+    }
+    if (rooms.some(r => r.id !== selectedRoom.id && r.room_number === num)) {
+      toast({ title: 'Room number already exists', variant: 'destructive' });
+      return;
+    }
+    const qrData = `${window.location.origin}/guest/${selectedBoatId}/${num}`;
+    const { error } = await supabase
+      .from('rooms')
+      .update({ room_number: num, qr_code_data: qrData })
+      .eq('id', selectedRoom.id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: `Room renamed to ${num}` });
+    setSelectedRoom({ ...selectedRoom, room_number: num, qr_code_data: qrData });
+    setEditingRoom(false);
+    // Refresh rooms
+    const { data } = await supabase.from('rooms').select('*').eq('boat_id', selectedBoatId).order('room_number');
+    if (data) setRooms(data);
+  };
+
   const handlePrintAll = () => {
     setPrintMode(true);
     setTimeout(() => window.print(), 500);
