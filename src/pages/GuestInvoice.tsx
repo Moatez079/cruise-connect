@@ -172,9 +172,9 @@ const GuestInvoice = ({ language, onBack }: Props) => {
 
         {/* Paid Badge */}
         {isPaid && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 mb-5">
-            <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
-            <span className="text-sm font-medium text-emerald-400">{t(lang, 'invoicePaid')}</span>
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-accent/10 border border-accent/20 mb-5">
+            <CheckCircle2 className="w-5 h-5 text-accent shrink-0" />
+            <span className="text-sm font-medium text-accent">{t(lang, 'invoicePaid')}</span>
           </div>
         )}
 
