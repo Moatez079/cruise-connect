@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, DoorOpen, QrCode, Printer, Pencil } from 'lucide-react';
+import { Plus, DoorOpen, Printer, Pencil, BedDouble, Crown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'react-qr-code';
 import type { Tables } from '@/integrations/supabase/types';
@@ -26,6 +26,9 @@ const statusColors: Record<string, string> = {
   maintenance: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
   do_not_disturb: 'bg-red-500/20 text-red-400 border-red-500/30',
 };
+
+const roomTypeLabels: Record<string, string> = { room: 'Room', suite: 'Suite' };
+const bedTypeLabels: Record<string, string> = { king: 'King Size', twin: 'Twin Bed' };
 
 const Rooms = () => {
   const { user, isOwner } = useAuth();
@@ -41,12 +44,12 @@ const Rooms = () => {
   const [printMode, setPrintMode] = useState(false);
   const [editingRoom, setEditingRoom] = useState(false);
   const [newRoomNumber, setNewRoomNumber] = useState('');
+  const [newRoomType, setNewRoomType] = useState<string>('room');
+  const [newBedType, setNewBedType] = useState<string>('king');
 
   useEffect(() => {
     const fetchBoats = async () => {
-      const { data } = isOwner
-        ? await supabase.from('boats').select('*')
-        : await supabase.from('boats').select('*');
+      const { data } = await supabase.from('boats').select('*');
       if (data && data.length > 0) {
         setBoats(data);
         setSelectedBoatId(data[0].id);
@@ -56,17 +59,18 @@ const Rooms = () => {
     fetchBoats();
   }, []);
 
-  useEffect(() => {
+  const refreshRooms = async () => {
     if (!selectedBoatId) return;
-    const fetchRooms = async () => {
-      const { data } = await supabase
-        .from('rooms')
-        .select('*')
-        .eq('boat_id', selectedBoatId)
-        .order('room_number');
-      if (data) setRooms(data);
-    };
-    fetchRooms();
+    const { data } = await supabase
+      .from('rooms')
+      .select('*')
+      .eq('boat_id', selectedBoatId)
+      .order('room_number');
+    if (data) setRooms(data);
+  };
+
+  useEffect(() => {
+    refreshRooms();
   }, [selectedBoatId]);
 
   const generateRooms = async () => {
@@ -79,7 +83,7 @@ const Rooms = () => {
 
     for (let i = 0; i < count; i++) {
       while (existingNumbers.includes(num)) num++;
-      if (num > 100) break;
+      if (num > 9999) break;
       const qrData = `${window.location.origin}/guest/${selectedBoatId}/${num}`;
       newRooms.push({ boat_id: selectedBoatId, room_number: num, qr_code_data: qrData });
       existingNumbers.push(num);
@@ -93,12 +97,10 @@ const Rooms = () => {
     }
     toast({ title: `${newRooms.length} rooms created!` });
     setAddDialogOpen(false);
-
-    const { data } = await supabase.from('rooms').select('*').eq('boat_id', selectedBoatId).order('room_number');
-    if (data) setRooms(data);
+    refreshRooms();
   };
 
-  const handleRenameRoom = async () => {
+  const handleSaveRoom = async () => {
     if (!selectedRoom) return;
     const num = parseInt(newRoomNumber);
     if (!num || num < 1) {
@@ -112,24 +114,36 @@ const Rooms = () => {
     const qrData = `${window.location.origin}/guest/${selectedBoatId}/${num}`;
     const { error } = await supabase
       .from('rooms')
-      .update({ room_number: num, qr_code_data: qrData })
+      .update({
+        room_number: num,
+        qr_code_data: qrData,
+        room_type: newRoomType as any,
+        bed_type: newBedType as any,
+      })
       .eq('id', selectedRoom.id);
     if (error) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
       return;
     }
-    toast({ title: `Room renamed to ${num}` });
-    setSelectedRoom({ ...selectedRoom, room_number: num, qr_code_data: qrData });
+    toast({ title: `Room updated successfully` });
+    setSelectedRoom({ ...selectedRoom, room_number: num, qr_code_data: qrData, room_type: newRoomType as any, bed_type: newBedType as any });
     setEditingRoom(false);
-    // Refresh rooms
-    const { data } = await supabase.from('rooms').select('*').eq('boat_id', selectedBoatId).order('room_number');
-    if (data) setRooms(data);
+    refreshRooms();
   };
 
   const handlePrintAll = () => {
     setPrintMode(true);
     setTimeout(() => window.print(), 500);
     setTimeout(() => setPrintMode(false), 1000);
+  };
+
+  const openRoomDialog = (room: Room) => {
+    setSelectedRoom(room);
+    setNewRoomNumber(String(room.room_number));
+    setNewRoomType(room.room_type || 'room');
+    setNewBedType(room.bed_type || 'king');
+    setEditingRoom(false);
+    setQrDialogOpen(true);
   };
 
   if (printMode) {
@@ -193,7 +207,7 @@ const Rooms = () => {
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Currently {rooms.length} rooms. Max 100 per boat.
+                    Currently {rooms.length} rooms.
                   </p>
                   <Button onClick={generateRooms} className="w-full">Generate</Button>
                 </div>
@@ -221,10 +235,11 @@ const Rooms = () => {
             {rooms.map(room => (
               <button
                 key={room.id}
-                onClick={() => { setSelectedRoom(room); setQrDialogOpen(true); }}
+                onClick={() => openRoomDialog(room)}
                 className={`aspect-square rounded-lg border flex flex-col items-center justify-center text-xs font-medium transition-all hover:scale-105 ${statusColors[room.status] || statusColors.available}`}
               >
                 <span className="text-sm font-bold">{room.room_number}</span>
+                {(room as any).room_type === 'suite' && <Crown className="w-3 h-3 mt-0.5 text-primary" />}
               </button>
             ))}
           </div>
@@ -242,21 +257,37 @@ const Rooms = () => {
           </div>
         )}
 
-        {/* QR Dialog */}
+        {/* QR + Properties Dialog */}
         <Dialog open={qrDialogOpen} onOpenChange={(open) => { setQrDialogOpen(open); if (!open) setEditingRoom(false); }}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle className="font-serif flex items-center gap-2">
-                Room {selectedRoom?.room_number} — QR Code
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingRoom(true); setNewRoomNumber(String(selectedRoom?.room_number || '')); }}>
+                Room {selectedRoom?.room_number}
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setEditingRoom(true)}>
                   <Pencil className="w-3.5 h-3.5" />
                 </Button>
               </DialogTitle>
             </DialogHeader>
+
+            {/* Room Properties (always visible) */}
+            {selectedRoom && !editingRoom && (
+              <div className="flex flex-wrap gap-3">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 text-sm">
+                  <Crown className="w-3.5 h-3.5 text-primary" />
+                  {roomTypeLabels[(selectedRoom as any).room_type] || 'Room'}
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/60 text-sm">
+                  <BedDouble className="w-3.5 h-3.5 text-primary" />
+                  {bedTypeLabels[(selectedRoom as any).bed_type] || 'King Size'}
+                </div>
+              </div>
+            )}
+
+            {/* Edit form */}
             {editingRoom && (
-              <div className="flex gap-2 items-end">
-                <div className="flex-1 space-y-1">
-                  <Label>New room number</Label>
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <Label>Room Number</Label>
                   <Input
                     type="number"
                     min="1"
@@ -265,16 +296,44 @@ const Rooms = () => {
                     className="bg-secondary/50"
                   />
                 </div>
-                <Button onClick={handleRenameRoom} size="sm">Save</Button>
-                <Button variant="ghost" size="sm" onClick={() => setEditingRoom(false)}>Cancel</Button>
+                <div className="space-y-1">
+                  <Label>Room Type</Label>
+                  <Select value={newRoomType} onValueChange={setNewRoomType}>
+                    <SelectTrigger className="bg-secondary/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="room">Room</SelectItem>
+                      <SelectItem value="suite">Suite</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Bed Type</Label>
+                  <Select value={newBedType} onValueChange={setNewBedType}>
+                    <SelectTrigger className="bg-secondary/50">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="king">King Size</SelectItem>
+                      <SelectItem value="twin">Twin Bed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <Button onClick={handleSaveRoom} className="flex-1">Save</Button>
+                  <Button variant="ghost" onClick={() => setEditingRoom(false)}>Cancel</Button>
+                </div>
               </div>
             )}
+
+            {/* QR Code */}
             {selectedRoom?.qr_code_data && (
-              <div className="flex flex-col items-center py-6">
+              <div className="flex flex-col items-center py-4">
                 <div className="p-4 bg-white rounded-xl">
-                  <QRCode value={selectedRoom.qr_code_data} size={200} />
+                  <QRCode value={selectedRoom.qr_code_data} size={180} />
                 </div>
-                <p className="mt-4 text-sm text-muted-foreground">Scan to request services</p>
+                <p className="mt-3 text-sm text-muted-foreground">Scan to request services</p>
                 <p className="mt-1 text-xs text-muted-foreground/60 break-all">{selectedRoom.qr_code_data}</p>
               </div>
             )}
