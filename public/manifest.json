@@ -1,0 +1,22 @@
+{
+  "name": "Guest Services",
+  "short_name": "Guest",
+  "description": "Your onboard guest services app",
+  "start_url": "/guest",
+  "display": "standalone",
+  "background_color": "#1a2332",
+  "theme_color": "#c8973e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
