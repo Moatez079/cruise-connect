@@ -243,11 +243,32 @@ const Rooms = () => {
         )}
 
         {/* QR Dialog */}
-        <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <Dialog open={qrDialogOpen} onOpenChange={(open) => { setQrDialogOpen(open); if (!open) setEditingRoom(false); }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="font-serif">Room {selectedRoom?.room_number} — QR Code</DialogTitle>
+              <DialogTitle className="font-serif flex items-center gap-2">
+                Room {selectedRoom?.room_number} — QR Code
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingRoom(true); setNewRoomNumber(String(selectedRoom?.room_number || '')); }}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+              </DialogTitle>
             </DialogHeader>
+            {editingRoom && (
+              <div className="flex gap-2 items-end">
+                <div className="flex-1 space-y-1">
+                  <Label>New room number</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={newRoomNumber}
+                    onChange={e => setNewRoomNumber(e.target.value)}
+                    className="bg-secondary/50"
+                  />
+                </div>
+                <Button onClick={handleRenameRoom} size="sm">Save</Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditingRoom(false)}>Cancel</Button>
+              </div>
+            )}
             {selectedRoom?.qr_code_data && (
               <div className="flex flex-col items-center py-6">
                 <div className="p-4 bg-white rounded-xl">
