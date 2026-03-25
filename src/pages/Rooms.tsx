@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, DoorOpen, QrCode, Printer } from 'lucide-react';
+import { Plus, DoorOpen, QrCode, Printer, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'react-qr-code';
 import type { Tables } from '@/integrations/supabase/types';
