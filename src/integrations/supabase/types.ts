@@ -141,6 +141,89 @@ export type Database = {
           },
         ]
       }
+      feedback_answers: {
+        Row: {
+          created_at: string
+          feedback_id: string
+          id: string
+          question_id: string
+          rating_value: number | null
+          text_value: string | null
+        }
+        Insert: {
+          created_at?: string
+          feedback_id: string
+          id?: string
+          question_id: string
+          rating_value?: number | null
+          text_value?: string | null
+        }
+        Update: {
+          created_at?: string
+          feedback_id?: string
+          id?: string
+          question_id?: string
+          rating_value?: number | null
+          text_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_answers_feedback_id_fkey"
+            columns: ["feedback_id"]
+            isOneToOne: false
+            referencedRelation: "guest_feedback"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_answers_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "feedback_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      feedback_questions: {
+        Row: {
+          boat_id: string
+          created_at: string
+          id: string
+          label: string
+          label_en: string
+          question_type: string
+          required: boolean
+          sort_order: number
+        }
+        Insert: {
+          boat_id: string
+          created_at?: string
+          id?: string
+          label: string
+          label_en: string
+          question_type?: string
+          required?: boolean
+          sort_order?: number
+        }
+        Update: {
+          boat_id?: string
+          created_at?: string
+          id?: string
+          label?: string
+          label_en?: string
+          question_type?: string
+          required?: boolean
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_questions_boat_id_fkey"
+            columns: ["boat_id"]
+            isOneToOne: false
+            referencedRelation: "boats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       guest_feedback: {
         Row: {
           boat_id: string
