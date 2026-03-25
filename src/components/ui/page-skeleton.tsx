@@ -94,3 +94,10 @@ export const PageSkeleton = {
     </div>
   </div>
 );
+
+export const PageSkeleton = {
+  Cards: CardsSkeleton,
+  List: ListSkeleton,
+  Table: TableSkeleton,
+  Dashboard: DashboardSkeleton,
+};
