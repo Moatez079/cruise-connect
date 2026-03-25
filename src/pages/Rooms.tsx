@@ -39,6 +39,8 @@ const Rooms = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [printMode, setPrintMode] = useState(false);
+  const [editingRoom, setEditingRoom] = useState(false);
+  const [newRoomNumber, setNewRoomNumber] = useState('');
 
   useEffect(() => {
     const fetchBoats = async () => {
