@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, MessageSquare, Download, Sparkles, Loader2, Trash2, Plus } from 'lucide-react';
+import { Star, MessageSquare, Download, Sparkles, Loader2, Trash2, Plus, Pencil, Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 
 interface FeedbackRow {
   id: string;
@@ -73,9 +74,18 @@ const Feedback = () => {
   const [extracting, setExtracting] = useState(false);
   const [showAddQuestion, setShowAddQuestion] = useState(false);
   const [formLabel, setFormLabel] = useState('');
+  const [formLabelEn, setFormLabelEn] = useState('');
   const [formType, setFormType] = useState('rating');
+  const [formRequired, setFormRequired] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  // Editing state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editLabel, setEditLabel] = useState('');
+  const [editLabelEn, setEditLabelEn] = useState('');
+  const [editType, setEditType] = useState('rating');
+  const [editRequired, setEditRequired] = useState(false);
 
   useEffect(() => {
     const fetchBoats = async () => {
@@ -96,7 +106,6 @@ const Feedback = () => {
     const { data } = await query;
     if (data) setFeedbacks(data as FeedbackRow[]);
 
-    // Fetch custom questions
     if (selectedBoat !== 'all') {
       const { data: qData } = await (supabase.from('feedback_questions' as any) as any)
         .select('*')
@@ -104,7 +113,6 @@ const Feedback = () => {
         .order('sort_order');
       if (qData) setQuestions(qData as FeedbackQuestion[]);
 
-      // Fetch answers for all feedbacks
       if (data && data.length > 0) {
         const fbIds = data.map((f: any) => f.id);
         const { data: aData } = await (supabase.from('feedback_answers' as any) as any)
@@ -172,7 +180,7 @@ const Feedback = () => {
       const { error: insertErr } = await (supabase.from('feedback_questions' as any) as any).insert(toInsert);
       if (insertErr) throw insertErr;
 
-      toast({ title: `${extracted.length} questions extracted!`, description: 'Feedback form is now active for guests.' });
+      toast({ title: `${extracted.length} questions extracted!`, description: 'You can now edit them below.' });
       fetchData();
     } catch (err: any) {
       toast({ title: 'Extraction failed', description: err.message, variant: 'destructive' });
@@ -183,12 +191,13 @@ const Feedback = () => {
   };
 
   const handleAddQuestion = async () => {
-    if (!formLabel.trim() || selectedBoat === 'all') return;
+    if (!formLabelEn.trim() || selectedBoat === 'all') return;
     const { error } = await (supabase.from('feedback_questions' as any) as any).insert({
       boat_id: selectedBoat,
-      label: formLabel,
-      label_en: formLabel,
+      label: formLabel.trim() || formLabelEn.trim(),
+      label_en: formLabelEn.trim(),
       question_type: formType,
+      required: formRequired,
       sort_order: questions.length,
     });
     if (error) {
@@ -198,11 +207,44 @@ const Feedback = () => {
     toast({ title: 'Question added' });
     setShowAddQuestion(false);
     setFormLabel('');
+    setFormLabelEn('');
+    setFormRequired(false);
     fetchData();
   };
 
   const handleDeleteQuestion = async (id: string) => {
     await (supabase.from('feedback_questions' as any) as any).delete().eq('id', id);
+    fetchData();
+  };
+
+  const startEditing = (q: FeedbackQuestion) => {
+    setEditingId(q.id);
+    setEditLabel(q.label);
+    setEditLabelEn(q.label_en);
+    setEditType(q.question_type);
+    setEditRequired(q.required);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+  };
+
+  const saveEdit = async (id: string) => {
+    if (!editLabelEn.trim()) return;
+    const { error } = await (supabase.from('feedback_questions' as any) as any)
+      .update({
+        label: editLabel.trim() || editLabelEn.trim(),
+        label_en: editLabelEn.trim(),
+        question_type: editType,
+        required: editRequired,
+      })
+      .eq('id', id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    setEditingId(null);
+    toast({ title: 'Question updated' });
     fetchData();
   };
 
@@ -279,7 +321,6 @@ const Feedback = () => {
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
-                      {/* Default ratings */}
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         <div>
                           <p className="text-xs text-muted-foreground mb-1">Overall</p>
@@ -305,7 +346,6 @@ const Feedback = () => {
                         )}
                       </div>
 
-                      {/* Custom question answers */}
                       {answers[fb.id] && answers[fb.id].length > 0 && (
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 border-t border-border/30">
                           {answers[fb.id].map(a => (
@@ -375,7 +415,7 @@ const Feedback = () => {
                     className="hidden"
                     onChange={handleImageUpload}
                   />
-                  <Button onClick={() => { setFormLabel(''); setFormType('rating'); setShowAddQuestion(true); }}>
+                  <Button onClick={() => { setFormLabel(''); setFormLabelEn(''); setFormType('rating'); setFormRequired(false); setShowAddQuestion(true); }}>
                     <Plus className="w-4 h-4 mr-2" />Add Question
                   </Button>
                 </div>
@@ -386,7 +426,7 @@ const Feedback = () => {
                       <Sparkles className="w-12 h-12 text-muted-foreground/30 mb-4" />
                       <h3 className="text-lg font-semibold mb-2">No custom feedback form</h3>
                       <p className="text-sm text-muted-foreground mb-4 max-w-sm">
-                        Upload a photo of your feedback form and AI will extract the questions, or add questions manually. Guests will see the default form until you set one up.
+                        Upload a photo of your feedback form and AI will extract the questions, or add questions manually.
                       </p>
                       <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={extracting}>
                         <Sparkles className="w-4 h-4 mr-2" />Upload Form Image
@@ -403,7 +443,8 @@ const Feedback = () => {
                         <TableHeader>
                           <TableRow>
                             <TableHead>#</TableHead>
-                            <TableHead>Question</TableHead>
+                            <TableHead>Question (EN)</TableHead>
+                            <TableHead>Original Label</TableHead>
                             <TableHead>Type</TableHead>
                             <TableHead>Required</TableHead>
                             <TableHead className="text-right">Actions</TableHead>
@@ -413,25 +454,75 @@ const Feedback = () => {
                           {questions.map((q, idx) => (
                             <TableRow key={q.id}>
                               <TableCell className="text-muted-foreground">{idx + 1}</TableCell>
-                              <TableCell>
-                                <div>
-                                  <span className="font-medium">{q.label_en}</span>
-                                  {q.label !== q.label_en && (
-                                    <span className="text-xs text-muted-foreground block">{q.label}</span>
-                                  )}
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="outline" className="text-xs">
-                                  {q.question_type === 'rating' ? '⭐ Rating' : '💬 Text'}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>{q.required ? 'Yes' : 'No'}</TableCell>
-                              <TableCell className="text-right">
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(q.id)} className="text-destructive hover:text-destructive">
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
-                              </TableCell>
+                              {editingId === q.id ? (
+                                <>
+                                  <TableCell>
+                                    <Input
+                                      value={editLabelEn}
+                                      onChange={e => setEditLabelEn(e.target.value)}
+                                      className="h-8 text-sm"
+                                      placeholder="English label"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Input
+                                      value={editLabel}
+                                      onChange={e => setEditLabel(e.target.value)}
+                                      className="h-8 text-sm"
+                                      placeholder="Original label"
+                                    />
+                                  </TableCell>
+                                  <TableCell>
+                                    <Select value={editType} onValueChange={setEditType}>
+                                      <SelectTrigger className="h-8 text-xs w-[100px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="rating">⭐ Rating</SelectItem>
+                                        <SelectItem value="text">💬 Text</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Switch checked={editRequired} onCheckedChange={setEditRequired} />
+                                  </TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                      <Button variant="ghost" size="icon" onClick={() => saveEdit(q.id)} className="text-green-600 hover:text-green-700 h-8 w-8">
+                                        <Check className="w-4 h-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={cancelEditing} className="h-8 w-8">
+                                        <X className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </>
+                              ) : (
+                                <>
+                                  <TableCell>
+                                    <span className="font-medium">{q.label_en}</span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <span className="text-xs text-muted-foreground">{q.label !== q.label_en ? q.label : '—'}</span>
+                                  </TableCell>
+                                  <TableCell>
+                                    <Badge variant="outline" className="text-xs">
+                                      {q.question_type === 'rating' ? '⭐ Rating' : '💬 Text'}
+                                    </Badge>
+                                  </TableCell>
+                                  <TableCell>{q.required ? 'Yes' : 'No'}</TableCell>
+                                  <TableCell className="text-right">
+                                    <div className="flex justify-end gap-1">
+                                      <Button variant="ghost" size="icon" onClick={() => startEditing(q)} className="h-8 w-8">
+                                        <Pencil className="w-4 h-4" />
+                                      </Button>
+                                      <Button variant="ghost" size="icon" onClick={() => handleDeleteQuestion(q.id)} className="text-destructive hover:text-destructive h-8 w-8">
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </TableCell>
+                                </>
+                              )}
                             </TableRow>
                           ))}
                         </TableBody>
@@ -453,8 +544,12 @@ const Feedback = () => {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Question Text</Label>
-              <Input value={formLabel} onChange={e => setFormLabel(e.target.value)} placeholder="e.g. How was the entertainment?" />
+              <Label>Question (English) *</Label>
+              <Input value={formLabelEn} onChange={e => setFormLabelEn(e.target.value)} placeholder="e.g. How was the entertainment?" />
+            </div>
+            <div className="space-y-2">
+              <Label>Original Label (optional)</Label>
+              <Input value={formLabel} onChange={e => setFormLabel(e.target.value)} placeholder="Original language label" />
             </div>
             <div className="space-y-2">
               <Label>Type</Label>
@@ -468,9 +563,13 @@ const Feedback = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={formRequired} onCheckedChange={setFormRequired} />
+              <Label>Required</Label>
+            </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleAddQuestion} disabled={!formLabel.trim()}>Add Question</Button>
+            <Button onClick={handleAddQuestion} disabled={!formLabelEn.trim()}>Add Question</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

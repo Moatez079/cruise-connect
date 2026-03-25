@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronLeft, Loader2, Send, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
 
 interface Props {
   language: string;
@@ -21,6 +22,7 @@ interface FeedbackQuestion {
   question_type: string;
   required: boolean;
   sort_order: number;
+  label_translated?: string;
 }
 
 const StarRating = ({ value, onChange, size = 28 }: { value: number; onChange: (v: number) => void; size?: number }) => (
@@ -59,18 +61,38 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
   const { toast } = useToast();
 
   useEffect(() => {
-    const fetchQuestions = async () => {
+    const fetchAndTranslateQuestions = async () => {
       const { data } = await (supabase.from('feedback_questions' as any) as any)
         .select('*')
         .eq('boat_id', boatId)
         .order('sort_order');
+
       if (data && data.length > 0) {
-        setCustomQuestions(data as FeedbackQuestion[]);
+        const questions = data as FeedbackQuestion[];
+
+        // If guest language is not English, translate question labels
+        if (language !== 'en') {
+          const translatedQuestions = await Promise.all(
+            questions.map(async (q) => {
+              try {
+                const res = await supabase.functions.invoke('translate', {
+                  body: { text: q.label_en, sourceLang: 'en', targetLang: language },
+                });
+                return { ...q, label_translated: res.data?.translatedText || q.label_en };
+              } catch {
+                return { ...q, label_translated: q.label_en };
+              }
+            })
+          );
+          setCustomQuestions(translatedQuestions);
+        } else {
+          setCustomQuestions(questions.map(q => ({ ...q, label_translated: q.label_en })));
+        }
       }
       setLoadingQuestions(false);
     };
-    fetchQuestions();
-  }, [boatId]);
+    fetchAndTranslateQuestions();
+  }, [boatId, language]);
 
   const hasCustomForm = customQuestions.length > 0;
 
@@ -89,11 +111,11 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       for (const q of customQuestions) {
         if (q.required) {
           if (q.question_type === 'rating' && (!customRatings[q.id] || customRatings[q.id] === 0)) {
-            toast({ title: `${q.label_en} is required`, variant: 'destructive' });
+            toast({ title: `${q.label_translated || q.label_en} is required`, variant: 'destructive' });
             return;
           }
           if (q.question_type === 'text' && (!customTexts[q.id] || !customTexts[q.id].trim())) {
-            toast({ title: `${q.label_en} is required`, variant: 'destructive' });
+            toast({ title: `${q.label_translated || q.label_en} is required`, variant: 'destructive' });
             return;
           }
         }
@@ -156,7 +178,7 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       // Generate PDF
       if (feedbackId) {
         try {
-          await generateAndUploadPDF(feedbackId);
+          await generateAndUploadPDF(feedbackId, translatedComment);
         } catch (pdfErr) {
           console.warn('PDF generation failed:', pdfErr);
         }
@@ -170,46 +192,110 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
     }
   };
 
-  const generateAndUploadPDF = async (feedbackId: string) => {
-    const ratingStars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
-    const html = `
-      <div style="font-family:Helvetica,Arial,sans-serif;padding:40px;max-width:600px;margin:0 auto;">
-        <h1 style="color:#1a365d;border-bottom:2px solid #2563eb;padding-bottom:12px;">Guest Feedback</h1>
-        <p><strong>Room:</strong> ${roomNumber}</p>
-        <p><strong>Language:</strong> ${language.toUpperCase()}</p>
-        <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-        <hr style="margin:20px 0;border-color:#e2e8f0;">
-        <h2 style="color:#2563eb;">Ratings</h2>
-        <p><strong>Overall:</strong> ${ratingStars(ratings.overall)} (${ratings.overall}/5)</p>
-        ${ratings.service ? `<p><strong>Service:</strong> ${ratingStars(ratings.service)} (${ratings.service}/5)</p>` : ''}
-        ${ratings.cleanliness ? `<p><strong>Cleanliness:</strong> ${ratingStars(ratings.cleanliness)} (${ratings.cleanliness}/5)</p>` : ''}
-        ${ratings.food ? `<p><strong>Food:</strong> ${ratingStars(ratings.food)} (${ratings.food}/5)</p>` : ''}
-        ${hasCustomForm ? `
-          <h2 style="color:#2563eb;">Custom Ratings</h2>
-          ${customQuestions.map(q => {
-            if (q.question_type === 'rating' && customRatings[q.id]) {
-              return `<p><strong>${q.label_en}:</strong> ${ratingStars(customRatings[q.id])} (${customRatings[q.id]}/5)</p>`;
-            }
-            if (q.question_type === 'text' && customTexts[q.id]) {
-              return `<p><strong>${q.label_en}:</strong> ${customTexts[q.id]}</p>`;
-            }
-            return '';
-          }).join('')}
-        ` : ''}
-        ${comment.trim() ? `
-          <hr style="margin:20px 0;border-color:#e2e8f0;">
-          <h2 style="color:#2563eb;">Guest Comment</h2>
-          <p style="background:#f7fafc;padding:16px;border-radius:8px;border-left:4px solid #2563eb;">${comment}</p>
-        ` : ''}
-      </div>
-    `;
+  const generateAndUploadPDF = async (feedbackId: string, translatedComment: string | null) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    let y = 20;
 
-    const blob = new Blob([`<html><body>${html}</body></html>`], { type: 'text/html' });
-    const fileName = `feedback_${feedbackId}_room${roomNumber}_${Date.now()}.html`;
+    // Header
+    doc.setFontSize(20);
+    doc.setTextColor(26, 54, 93); // navy
+    doc.text('Guest Feedback Report', pageWidth / 2, y, { align: 'center' });
+    y += 12;
+
+    // Divider
+    doc.setDrawColor(37, 99, 235);
+    doc.setLineWidth(0.5);
+    doc.line(20, y, pageWidth - 20, y);
+    y += 10;
+
+    // Info
+    doc.setFontSize(11);
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Room: ${roomNumber}`, 20, y);
+    doc.text(`Date: ${new Date().toLocaleDateString('en-US')}`, pageWidth - 20, y, { align: 'right' });
+    y += 8;
+    doc.text(`Language: ${language.toUpperCase()}`, 20, y);
+    y += 12;
+
+    // Ratings section
+    doc.setFontSize(14);
+    doc.setTextColor(26, 54, 93);
+    doc.text('Ratings', 20, y);
+    y += 8;
+
+    const ratingStars = (n: number) => '\u2605'.repeat(n) + '\u2606'.repeat(5 - n);
+
+    doc.setFontSize(11);
+    doc.setTextColor(60, 60, 60);
+
+    const ratingItems: { label: string; value: number }[] = [
+      { label: 'Overall', value: ratings.overall },
+    ];
+    if (ratings.service) ratingItems.push({ label: 'Service', value: ratings.service });
+    if (ratings.cleanliness) ratingItems.push({ label: 'Cleanliness', value: ratings.cleanliness });
+    if (ratings.food) ratingItems.push({ label: 'Food', value: ratings.food });
+
+    for (const item of ratingItems) {
+      doc.text(`${item.label}: ${ratingStars(item.value)}  (${item.value}/5)`, 25, y);
+      y += 7;
+    }
+    y += 5;
+
+    // Custom questions
+    if (hasCustomForm) {
+      doc.setFontSize(14);
+      doc.setTextColor(26, 54, 93);
+      doc.text('Additional Questions', 20, y);
+      y += 8;
+
+      doc.setFontSize(11);
+      doc.setTextColor(60, 60, 60);
+
+      for (const q of customQuestions) {
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+        if (q.question_type === 'rating' && customRatings[q.id]) {
+          doc.text(`${q.label_en}: ${ratingStars(customRatings[q.id])}  (${customRatings[q.id]}/5)`, 25, y);
+          y += 7;
+        } else if (q.question_type === 'text' && customTexts[q.id]) {
+          doc.text(`${q.label_en}:`, 25, y);
+          y += 6;
+          const lines = doc.splitTextToSize(customTexts[q.id], pageWidth - 55);
+          doc.text(lines, 30, y);
+          y += lines.length * 6 + 3;
+        }
+      }
+      y += 5;
+    }
+
+    // Comment
+    const commentText = translatedComment || comment.trim();
+    if (commentText) {
+      if (y > 240) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFontSize(14);
+      doc.setTextColor(26, 54, 93);
+      doc.text('Guest Comment', 20, y);
+      y += 8;
+
+      doc.setFontSize(11);
+      doc.setTextColor(60, 60, 60);
+      const commentLines = doc.splitTextToSize(commentText, pageWidth - 50);
+      doc.text(commentLines, 25, y);
+    }
+
+    // Upload
+    const pdfBlob = doc.output('blob');
+    const fileName = `feedback_${feedbackId}_room${roomNumber}_${Date.now()}.pdf`;
 
     const { error } = await supabase.storage
       .from('feedback-pdfs')
-      .upload(fileName, blob, { contentType: 'text/html' });
+      .upload(fileName, pdfBlob, { contentType: 'application/pdf' });
     if (error) throw error;
 
     await (supabase.from('guest_feedback' as any) as any)
@@ -250,7 +336,7 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
             </div>
           ))}
 
-          {/* Custom questions from uploaded form */}
+          {/* Custom questions - translated to guest language */}
           {hasCustomForm && (
             <>
               <div className="border-t border-border/30 pt-4">
@@ -259,7 +345,7 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
               {customQuestions.map((q) => (
                 <div key={q.id} className="space-y-2">
                   <label className="text-sm font-medium text-foreground">
-                    {language === 'ar' || language !== 'en' ? q.label : q.label_en}
+                    {q.label_translated || q.label_en}
                     {q.required && <span className="text-destructive ml-1">*</span>}
                   </label>
                   {q.question_type === 'rating' ? (
