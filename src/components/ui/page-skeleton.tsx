@@ -44,6 +44,14 @@ export const ListSkeleton = ({ count = 4 }: { count?: number }) => (
   </div>
 );
 
+export const CardsSkeleton = ({ count = 6 }: { count?: number }) => (
+  <div className="grid grid-cols-5 sm:grid-cols-8 md:grid-cols-10 gap-2">
+    {Array.from({ length: count }).map((_, i) => (
+      <Skeleton key={i} className="aspect-square rounded-lg" />
+    ))}
+  </div>
+);
+
 export const DashboardSkeleton = () => (
   <div className="space-y-6">
     <div className="rounded-xl border border-border/50 bg-card p-6">
@@ -62,3 +70,10 @@ export const DashboardSkeleton = () => (
     </div>
   </div>
 );
+
+export const PageSkeleton = {
+  Cards: CardsSkeleton,
+  List: ListSkeleton,
+  Table: TableSkeleton,
+  Dashboard: DashboardSkeleton,
+};
