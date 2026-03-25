@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { LANGUAGES, t } from '@/lib/languages';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { BoatBrandingProvider } from '@/components/guest/BoatBrandingContext';
 import GuestLanguageSelect from '@/components/guest/GuestLanguageSelect';
 import GuestMainMenu from '@/components/guest/GuestMainMenu';
@@ -30,10 +29,14 @@ const loadSession = () => {
 
 const GuestApp = () => {
   const { boatId, roomNumber } = useParams();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [language, setLanguage] = useState('');
   const [view, setView] = useState<GuestView>('language');
   const [resolved, setResolved] = useState(false);
+
+  // Read initial view from search params for deep linking
+  const initialView = searchParams.get('view') as GuestView | null;
 
   // If no params (PWA opened to /guest), restore from localStorage
   useEffect(() => {
@@ -53,10 +56,10 @@ const GuestApp = () => {
       const session = loadSession();
       if (session && session.boatId === boatId && String(session.roomNumber) === roomNumber) {
         setLanguage(session.language);
-        setView('menu');
+        setView(initialView || 'menu');
       }
     }
-  }, [resolved, boatId, roomNumber, language]);
+  }, [resolved, boatId, roomNumber, language, initialView]);
 
   // Register service worker
   useEffect(() => {
@@ -150,7 +153,6 @@ const GuestApp = () => {
           <GuestSuccess language={language} onBack={handleBack} />
         )}
 
-        {/* PWA Install Prompt */}
         {language && <PWAInstallPrompt language={language} />}
       </div>
     </BoatBrandingProvider>
