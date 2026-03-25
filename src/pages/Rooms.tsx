@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, DoorOpen, Printer, Pencil, BedDouble, Crown } from 'lucide-react';
+import { Plus, DoorOpen, Printer, Pencil, BedDouble, Crown, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBoats } from '@/hooks/useBoats';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
