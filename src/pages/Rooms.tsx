@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, DoorOpen, QrCode, Printer } from 'lucide-react';
+import { Plus, DoorOpen, QrCode, Printer, Pencil } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import QRCode from 'react-qr-code';
 import type { Tables } from '@/integrations/supabase/types';
@@ -39,6 +39,8 @@ const Rooms = () => {
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
   const [printMode, setPrintMode] = useState(false);
+  const [editingRoom, setEditingRoom] = useState(false);
+  const [newRoomNumber, setNewRoomNumber] = useState('');
 
   useEffect(() => {
     const fetchBoats = async () => {
@@ -92,6 +94,34 @@ const Rooms = () => {
     toast({ title: `${newRooms.length} rooms created!` });
     setAddDialogOpen(false);
 
+    const { data } = await supabase.from('rooms').select('*').eq('boat_id', selectedBoatId).order('room_number');
+    if (data) setRooms(data);
+  };
+
+  const handleRenameRoom = async () => {
+    if (!selectedRoom) return;
+    const num = parseInt(newRoomNumber);
+    if (!num || num < 1) {
+      toast({ title: 'Invalid room number', variant: 'destructive' });
+      return;
+    }
+    if (rooms.some(r => r.id !== selectedRoom.id && r.room_number === num)) {
+      toast({ title: 'Room number already exists', variant: 'destructive' });
+      return;
+    }
+    const qrData = `${window.location.origin}/guest/${selectedBoatId}/${num}`;
+    const { error } = await supabase
+      .from('rooms')
+      .update({ room_number: num, qr_code_data: qrData })
+      .eq('id', selectedRoom.id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      return;
+    }
+    toast({ title: `Room renamed to ${num}` });
+    setSelectedRoom({ ...selectedRoom, room_number: num, qr_code_data: qrData });
+    setEditingRoom(false);
+    // Refresh rooms
     const { data } = await supabase.from('rooms').select('*').eq('boat_id', selectedBoatId).order('room_number');
     if (data) setRooms(data);
   };
@@ -213,11 +243,32 @@ const Rooms = () => {
         )}
 
         {/* QR Dialog */}
-        <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
+        <Dialog open={qrDialogOpen} onOpenChange={(open) => { setQrDialogOpen(open); if (!open) setEditingRoom(false); }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle className="font-serif">Room {selectedRoom?.room_number} — QR Code</DialogTitle>
+              <DialogTitle className="font-serif flex items-center gap-2">
+                Room {selectedRoom?.room_number} — QR Code
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setEditingRoom(true); setNewRoomNumber(String(selectedRoom?.room_number || '')); }}>
+                  <Pencil className="w-3.5 h-3.5" />
+                </Button>
+              </DialogTitle>
             </DialogHeader>
+            {editingRoom && (
+              <div className="flex gap-2 items-end">
+                <div className="flex-1 space-y-1">
+                  <Label>New room number</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={newRoomNumber}
+                    onChange={e => setNewRoomNumber(e.target.value)}
+                    className="bg-secondary/50"
+                  />
+                </div>
+                <Button onClick={handleRenameRoom} size="sm">Save</Button>
+                <Button variant="ghost" size="sm" onClick={() => setEditingRoom(false)}>Cancel</Button>
+              </div>
+            )}
             {selectedRoom?.qr_code_data && (
               <div className="flex flex-col items-center py-6">
                 <div className="p-4 bg-white rounded-xl">
