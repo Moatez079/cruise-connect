@@ -6,48 +6,48 @@
 
 @layer base {
   :root {
-    --background: 260 30% 6%;
-    --foreground: 40 20% 90%;
+    --background: 220 40% 13%;
+    --foreground: 0 0% 95%;
 
-    --card: 260 25% 10%;
-    --card-foreground: 40 20% 90%;
+    --card: 220 38% 17%;
+    --card-foreground: 0 0% 95%;
 
-    --popover: 260 25% 10%;
-    --popover-foreground: 40 20% 90%;
+    --popover: 220 38% 17%;
+    --popover-foreground: 0 0% 95%;
 
-    --primary: 40 52% 50%;
-    --primary-foreground: 260 30% 6%;
+    --primary: 43 72% 55%;
+    --primary-foreground: 220 40% 13%;
 
-    --secondary: 260 20% 16%;
-    --secondary-foreground: 40 20% 90%;
+    --secondary: 220 30% 22%;
+    --secondary-foreground: 0 0% 95%;
 
-    --muted: 260 20% 14%;
-    --muted-foreground: 260 10% 55%;
+    --muted: 220 30% 20%;
+    --muted-foreground: 220 15% 60%;
 
-    --accent: 40 52% 50%;
-    --accent-foreground: 260 30% 6%;
+    --accent: 43 72% 55%;
+    --accent-foreground: 220 40% 13%;
 
     --destructive: 0 72% 51%;
-    --destructive-foreground: 40 20% 95%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 260 20% 18%;
-    --input: 260 20% 18%;
-    --ring: 40 52% 50%;
+    --border: 220 25% 25%;
+    --input: 220 25% 25%;
+    --ring: 43 72% 55%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 260 28% 8%;
-    --sidebar-foreground: 40 15% 75%;
-    --sidebar-primary: 40 52% 50%;
-    --sidebar-primary-foreground: 260 30% 6%;
-    --sidebar-accent: 260 20% 14%;
-    --sidebar-accent-foreground: 40 20% 90%;
-    --sidebar-border: 260 20% 15%;
-    --sidebar-ring: 40 52% 50%;
+    --sidebar-background: 220 42% 10%;
+    --sidebar-foreground: 220 15% 75%;
+    --sidebar-primary: 43 72% 55%;
+    --sidebar-primary-foreground: 220 40% 13%;
+    --sidebar-accent: 220 30% 18%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 220 25% 20%;
+    --sidebar-ring: 43 72% 55%;
 
-    --gold: 40 52% 50%;
-    --gold-light: 40 60% 65%;
-    --gold-dark: 40 45% 38%;
+    --gold: 43 72% 55%;
+    --gold-light: 43 80% 68%;
+    --gold-dark: 43 60% 42%;
   }
 }
 
