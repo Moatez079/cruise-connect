@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { t } from '@/lib/languages';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -14,12 +14,14 @@ interface Props {
   onSuccess: () => void;
 }
 
-const ratingCategories = [
-  { key: 'overall', labelKey: 'overallRating', required: true },
-  { key: 'service', labelKey: 'serviceRating', required: false },
-  { key: 'cleanliness', labelKey: 'cleanlinessRating', required: false },
-  { key: 'food', labelKey: 'foodRating', required: false },
-];
+interface FeedbackQuestion {
+  id: string;
+  label: string;
+  label_en: string;
+  question_type: string;
+  required: boolean;
+  sort_order: number;
+}
 
 const StarRating = ({ value, onChange, size = 28 }: { value: number; onChange: (v: number) => void; size?: number }) => (
   <div className="flex gap-1">
@@ -39,11 +41,38 @@ const StarRating = ({ value, onChange, size = 28 }: { value: number; onChange: (
   </div>
 );
 
+const defaultCategories = [
+  { key: 'overall', labelKey: 'overallRating', required: true },
+  { key: 'service', labelKey: 'serviceRating', required: false },
+  { key: 'cleanliness', labelKey: 'cleanlinessRating', required: false },
+  { key: 'food', labelKey: 'foodRating', required: false },
+];
+
 const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Props) => {
   const [ratings, setRatings] = useState<Record<string, number>>({ overall: 0, service: 0, cleanliness: 0, food: 0 });
   const [comment, setComment] = useState('');
   const [sending, setSending] = useState(false);
+  const [customQuestions, setCustomQuestions] = useState<FeedbackQuestion[]>([]);
+  const [customRatings, setCustomRatings] = useState<Record<string, number>>({});
+  const [customTexts, setCustomTexts] = useState<Record<string, string>>({});
+  const [loadingQuestions, setLoadingQuestions] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchQuestions = async () => {
+      const { data } = await (supabase.from('feedback_questions' as any) as any)
+        .select('*')
+        .eq('boat_id', boatId)
+        .order('sort_order');
+      if (data && data.length > 0) {
+        setCustomQuestions(data as FeedbackQuestion[]);
+      }
+      setLoadingQuestions(false);
+    };
+    fetchQuestions();
+  }, [boatId]);
+
+  const hasCustomForm = customQuestions.length > 0;
 
   const setRating = (key: string, value: number) => {
     setRatings((prev) => ({ ...prev, [key]: value }));
@@ -54,12 +83,28 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       toast({ title: t(language, 'ratingRequired'), variant: 'destructive' });
       return;
     }
+
+    // Validate required custom questions
+    if (hasCustomForm) {
+      for (const q of customQuestions) {
+        if (q.required) {
+          if (q.question_type === 'rating' && (!customRatings[q.id] || customRatings[q.id] === 0)) {
+            toast({ title: `${q.label_en} is required`, variant: 'destructive' });
+            return;
+          }
+          if (q.question_type === 'text' && (!customTexts[q.id] || !customTexts[q.id].trim())) {
+            toast({ title: `${q.label_en} is required`, variant: 'destructive' });
+            return;
+          }
+        }
+      }
+    }
+
     setSending(true);
 
     try {
       let translatedComment = comment || null;
 
-      // Translate comment if not English and has content
       if (comment.trim() && language !== 'en') {
         try {
           const res = await supabase.functions.invoke('translate', {
@@ -73,7 +118,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
         }
       }
 
-      // Insert feedback
       const { data: feedback, error } = await supabase
         .from('guest_feedback' as any)
         .insert({
@@ -91,12 +135,25 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
         .single();
 
       if (error) throw error;
-
       const feedbackId = (feedback as any)?.id;
 
-      if (error) throw error;
+      // Insert custom answers
+      if (feedbackId && hasCustomForm) {
+        const answersToInsert = customQuestions
+          .filter(q => customRatings[q.id] || customTexts[q.id])
+          .map(q => ({
+            feedback_id: feedbackId,
+            question_id: q.id,
+            rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
+            text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
+          }));
 
-      // Generate and upload PDF
+        if (answersToInsert.length > 0) {
+          await (supabase.from('feedback_answers' as any) as any).insert(answersToInsert);
+        }
+      }
+
+      // Generate PDF
       if (feedbackId) {
         try {
           await generateAndUploadPDF(feedbackId);
@@ -114,7 +171,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
   };
 
   const generateAndUploadPDF = async (feedbackId: string) => {
-    // Build a simple HTML-based PDF content
     const ratingStars = (n: number) => '★'.repeat(n) + '☆'.repeat(5 - n);
     const html = `
       <div style="font-family:Helvetica,Arial,sans-serif;padding:40px;max-width:600px;margin:0 auto;">
@@ -128,6 +184,18 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
         ${ratings.service ? `<p><strong>Service:</strong> ${ratingStars(ratings.service)} (${ratings.service}/5)</p>` : ''}
         ${ratings.cleanliness ? `<p><strong>Cleanliness:</strong> ${ratingStars(ratings.cleanliness)} (${ratings.cleanliness}/5)</p>` : ''}
         ${ratings.food ? `<p><strong>Food:</strong> ${ratingStars(ratings.food)} (${ratings.food}/5)</p>` : ''}
+        ${hasCustomForm ? `
+          <h2 style="color:#2563eb;">Custom Ratings</h2>
+          ${customQuestions.map(q => {
+            if (q.question_type === 'rating' && customRatings[q.id]) {
+              return `<p><strong>${q.label_en}:</strong> ${ratingStars(customRatings[q.id])} (${customRatings[q.id]}/5)</p>`;
+            }
+            if (q.question_type === 'text' && customTexts[q.id]) {
+              return `<p><strong>${q.label_en}:</strong> ${customTexts[q.id]}</p>`;
+            }
+            return '';
+          }).join('')}
+        ` : ''}
         ${comment.trim() ? `
           <hr style="margin:20px 0;border-color:#e2e8f0;">
           <h2 style="color:#2563eb;">Guest Comment</h2>
@@ -136,21 +204,26 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       </div>
     `;
 
-    // Convert HTML to a Blob (simple text/html PDF approach)
     const blob = new Blob([`<html><body>${html}</body></html>`], { type: 'text/html' });
     const fileName = `feedback_${feedbackId}_room${roomNumber}_${Date.now()}.html`;
 
     const { error } = await supabase.storage
       .from('feedback-pdfs')
       .upload(fileName, blob, { contentType: 'text/html' });
-
     if (error) throw error;
 
-    // Update feedback record with PDF path
     await (supabase.from('guest_feedback' as any) as any)
       .update({ pdf_path: fileName })
       .eq('id', feedbackId);
   };
+
+  if (loadingQuestions) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col px-4 py-6" dir={language === 'ar' ? 'rtl' : 'ltr'}>
@@ -163,7 +236,8 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
         </div>
 
         <div className="space-y-6">
-          {ratingCategories.map((cat) => (
+          {/* Default rating categories (always shown) */}
+          {defaultCategories.map((cat) => (
             <div key={cat.key} className="space-y-2">
               <label className="text-sm font-medium text-foreground">
                 {t(language, cat.labelKey)}
@@ -176,6 +250,37 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
             </div>
           ))}
 
+          {/* Custom questions from uploaded form */}
+          {hasCustomForm && (
+            <>
+              <div className="border-t border-border/30 pt-4">
+                <p className="text-xs text-muted-foreground mb-4">{t(language, 'additionalQuestions') || 'Additional Questions'}</p>
+              </div>
+              {customQuestions.map((q) => (
+                <div key={q.id} className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    {language === 'ar' || language !== 'en' ? q.label : q.label_en}
+                    {q.required && <span className="text-destructive ml-1">*</span>}
+                  </label>
+                  {q.question_type === 'rating' ? (
+                    <StarRating
+                      value={customRatings[q.id] || 0}
+                      onChange={(v) => setCustomRatings(prev => ({ ...prev, [q.id]: v }))}
+                    />
+                  ) : (
+                    <Textarea
+                      value={customTexts[q.id] || ''}
+                      onChange={(e) => setCustomTexts(prev => ({ ...prev, [q.id]: e.target.value }))}
+                      className="min-h-[80px] bg-card border-border/50 text-base resize-none"
+                      dir={language === 'ar' ? 'rtl' : 'ltr'}
+                    />
+                  )}
+                </div>
+              ))}
+            </>
+          )}
+
+          {/* Comment */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">
               {t(language, 'feedbackComment')}
