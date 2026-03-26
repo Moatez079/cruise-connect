@@ -349,6 +349,17 @@ const Feedback = () => {
   const sentimentIcon = (s: string) => s === 'positive' ? <ThumbsUp className="w-5 h-5" /> : s === 'negative' ? <TrendingDown className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />;
   const priorityColor = (p: string) => p === 'high' ? 'bg-red-100 text-red-700 border-red-200' : p === 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 'bg-green-100 text-green-700 border-green-200';
 
+  const deleteFeedback = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this feedback?')) return;
+    const { error } = await (supabase.from('guest_feedback' as any) as any).delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setFeedbacks(prev => prev.filter(f => f.id !== id));
+      toast({ title: 'Feedback deleted' });
+    }
+  };
+
   return (
     <DashboardLayout title="Guest Feedback" description="Analyze feedback and manage forms">
       <div className="space-y-6">
