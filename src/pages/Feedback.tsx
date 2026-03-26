@@ -668,11 +668,26 @@ const Feedback = () => {
                         </div>
                       )}
 
-                      {fb.pdf_path && (
-                        <Button variant="outline" size="sm" onClick={() => downloadPdf(fb.pdf_path!)}>
-                          <Download className="w-3 h-3 mr-1" />Download Report
-                        </Button>
-                      )}
+                      <div className="flex gap-2">
+                        {fb.pdf_path ? (
+                          <Button variant="outline" size="sm" onClick={() => downloadPdf(fb.pdf_path!)}>
+                            <Download className="w-3 h-3 mr-1" />Download PDF
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => generatePdfForFeedback(fb)}
+                            disabled={generatingPdfId === fb.id}
+                          >
+                            {generatingPdfId === fb.id ? (
+                              <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</>
+                            ) : (
+                              <><FileText className="w-3 h-3 mr-1" />Generate PDF</>
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
