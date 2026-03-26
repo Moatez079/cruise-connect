@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -78,7 +78,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
 
   const handleSubmit = async () => {
     const hasAnyRating = Object.values(ratings).some(v => v > 0);
-    if (!hasAnyRating && !comments['general']?.trim()) {
     if (!hasAnyRating && !comments['general']?.trim()) {
       toast({ title: 'Please provide at least one rating or comment', variant: 'destructive' });
       return;
