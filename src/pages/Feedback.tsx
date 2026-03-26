@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { generateAndUploadFeedbackPDF } from '@/lib/feedbackPdf';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, MessageSquare, Download, Sparkles, Loader2, Trash2, Plus, Pencil, Check, X, TrendingUp, TrendingDown, AlertTriangle, ThumbsUp, BarChart3, Brain } from 'lucide-react';
+import { Star, MessageSquare, Download, Sparkles, Loader2, Trash2, Plus, Pencil, Check, X, TrendingUp, TrendingDown, AlertTriangle, ThumbsUp, BarChart3, Brain, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
@@ -115,6 +116,11 @@ const Feedback = () => {
   const [editLabelEn, setEditLabelEn] = useState('');
   const [editType, setEditType] = useState('rating');
   const [editRequired, setEditRequired] = useState(false);
+
+  // PDF generation state
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
 
   useEffect(() => {
     const fetchBoats = async () => {
@@ -273,6 +279,65 @@ const Feedback = () => {
   const downloadPdf = async (path: string) => {
     const { data } = supabase.storage.from('feedback-pdfs').getPublicUrl(path);
     window.open(data.publicUrl, '_blank');
+  };
+
+  const generatePdfForFeedback = async (fb: FeedbackRow) => {
+    setGeneratingPdfId(fb.id);
+    try {
+      const fbAnswers = answers[fb.id] || [];
+      const customAnswersMapped = fbAnswers.map(a => ({
+        question_label: getQuestionLabel(a.question_id),
+        question_type: questions.find(q => q.id === a.question_id)?.question_type || 'rating',
+        rating_value: a.rating_value,
+        text_value: a.text_value,
+      }));
+
+      const fileName = await generateAndUploadFeedbackPDF(
+        { ...fb, boat_name: getBoatName(fb.boat_id) },
+        customAnswersMapped
+      );
+
+      setFeedbacks(prev => prev.map(f => f.id === fb.id ? { ...f, pdf_path: fileName } : f));
+      toast({ title: 'PDF generated!' });
+    } catch (err: any) {
+      toast({ title: 'PDF failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  };
+
+  const generateAllPdfs = async () => {
+    const missing = feedbacks.filter(f => !f.pdf_path);
+    if (missing.length === 0) {
+      toast({ title: 'All responses already have PDFs' });
+      return;
+    }
+    setBulkGenerating(true);
+    setBulkProgress({ done: 0, total: missing.length });
+
+    for (const fb of missing) {
+      try {
+        const fbAnswers = answers[fb.id] || [];
+        const customAnswersMapped = fbAnswers.map(a => ({
+          question_label: getQuestionLabel(a.question_id),
+          question_type: questions.find(q => q.id === a.question_id)?.question_type || 'rating',
+          rating_value: a.rating_value,
+          text_value: a.text_value,
+        }));
+
+        const fileName = await generateAndUploadFeedbackPDF(
+          { ...fb, boat_name: getBoatName(fb.boat_id) },
+          customAnswersMapped
+        );
+        setFeedbacks(prev => prev.map(f => f.id === fb.id ? { ...f, pdf_path: fileName } : f));
+      } catch (err) {
+        console.warn(`PDF failed for ${fb.id}:`, err);
+      }
+      setBulkProgress(prev => ({ ...prev, done: prev.done + 1 }));
+    }
+
+    setBulkGenerating(false);
+    toast({ title: `Generated ${missing.length} PDFs!` });
   };
 
   const sentimentColor = (s: string) => s === 'positive' ? 'text-green-600' : s === 'negative' ? 'text-red-600' : 'text-yellow-600';
@@ -524,6 +589,22 @@ const Feedback = () => {
               </Card>
             ) : (
               <div className="space-y-4">
+                {/* Bulk generate button */}
+                {feedbacks.some(f => !f.pdf_path) && (
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={generateAllPdfs}
+                      disabled={bulkGenerating}
+                    >
+                      {bulkGenerating ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating {bulkProgress.done}/{bulkProgress.total}...</>
+                      ) : (
+                        <><FileText className="w-4 h-4 mr-2" />Generate All PDFs ({feedbacks.filter(f => !f.pdf_path).length} missing)</>
+                      )}
+                    </Button>
+                  </div>
+                )}
                 {feedbacks.map((fb) => (
                   <Card key={fb.id} className="border-border/50">
                     <CardHeader className="pb-3">
@@ -587,11 +668,26 @@ const Feedback = () => {
                         </div>
                       )}
 
-                      {fb.pdf_path && (
-                        <Button variant="outline" size="sm" onClick={() => downloadPdf(fb.pdf_path!)}>
-                          <Download className="w-3 h-3 mr-1" />Download Report
-                        </Button>
-                      )}
+                      <div className="flex gap-2">
+                        {fb.pdf_path ? (
+                          <Button variant="outline" size="sm" onClick={() => downloadPdf(fb.pdf_path!)}>
+                            <Download className="w-3 h-3 mr-1" />Download PDF
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => generatePdfForFeedback(fb)}
+                            disabled={generatingPdfId === fb.id}
+                          >
+                            {generatingPdfId === fb.id ? (
+                              <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</>
+                            ) : (
+                              <><FileText className="w-3 h-3 mr-1" />Generate PDF</>
+                            )}
+                          </Button>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 ))}

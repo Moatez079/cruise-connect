@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronLeft, Loader2, Send, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import jsPDF from 'jspdf';
+import { generateAndUploadFeedbackPDF } from '@/lib/feedbackPdf';
 
 interface Props {
   language: string;
@@ -178,7 +178,27 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       // Generate PDF
       if (feedbackId) {
         try {
-          await generateAndUploadPDF(feedbackId, translatedComment);
+          const customAnswersMapped = customQuestions
+            .filter(q => customRatings[q.id] || customTexts[q.id])
+            .map(q => ({
+              question_label: q.label_en,
+              question_type: q.question_type,
+              rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
+              text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
+            }));
+
+          await generateAndUploadFeedbackPDF({
+            id: feedbackId,
+            room_number: roomNumber,
+            guest_language: language,
+            overall_rating: ratings.overall,
+            service_rating: ratings.service || null,
+            cleanliness_rating: ratings.cleanliness || null,
+            food_rating: ratings.food || null,
+            original_comment: comment.trim() || null,
+            translated_comment: translatedComment,
+            created_at: new Date().toISOString(),
+          }, customAnswersMapped);
         } catch (pdfErr) {
           console.warn('PDF generation failed:', pdfErr);
         }
@@ -192,116 +212,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
     }
   };
 
-  const generateAndUploadPDF = async (feedbackId: string, translatedComment: string | null) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 20;
-
-    // Header
-    doc.setFontSize(20);
-    doc.setTextColor(26, 54, 93); // navy
-    doc.text('Guest Feedback Report', pageWidth / 2, y, { align: 'center' });
-    y += 12;
-
-    // Divider
-    doc.setDrawColor(37, 99, 235);
-    doc.setLineWidth(0.5);
-    doc.line(20, y, pageWidth - 20, y);
-    y += 10;
-
-    // Info
-    doc.setFontSize(11);
-    doc.setTextColor(60, 60, 60);
-    doc.text(`Room: ${roomNumber}`, 20, y);
-    doc.text(`Date: ${new Date().toLocaleDateString('en-US')}`, pageWidth - 20, y, { align: 'right' });
-    y += 8;
-    doc.text(`Language: ${language.toUpperCase()}`, 20, y);
-    y += 12;
-
-    // Ratings section
-    doc.setFontSize(14);
-    doc.setTextColor(26, 54, 93);
-    doc.text('Ratings', 20, y);
-    y += 8;
-
-    const ratingStars = (n: number) => '\u2605'.repeat(n) + '\u2606'.repeat(5 - n);
-
-    doc.setFontSize(11);
-    doc.setTextColor(60, 60, 60);
-
-    const ratingItems: { label: string; value: number }[] = [
-      { label: 'Overall', value: ratings.overall },
-    ];
-    if (ratings.service) ratingItems.push({ label: 'Service', value: ratings.service });
-    if (ratings.cleanliness) ratingItems.push({ label: 'Cleanliness', value: ratings.cleanliness });
-    if (ratings.food) ratingItems.push({ label: 'Food', value: ratings.food });
-
-    for (const item of ratingItems) {
-      doc.text(`${item.label}: ${ratingStars(item.value)}  (${item.value}/5)`, 25, y);
-      y += 7;
-    }
-    y += 5;
-
-    // Custom questions
-    if (hasCustomForm) {
-      doc.setFontSize(14);
-      doc.setTextColor(26, 54, 93);
-      doc.text('Additional Questions', 20, y);
-      y += 8;
-
-      doc.setFontSize(11);
-      doc.setTextColor(60, 60, 60);
-
-      for (const q of customQuestions) {
-        if (y > 260) {
-          doc.addPage();
-          y = 20;
-        }
-        if (q.question_type === 'rating' && customRatings[q.id]) {
-          doc.text(`${q.label_en}: ${ratingStars(customRatings[q.id])}  (${customRatings[q.id]}/5)`, 25, y);
-          y += 7;
-        } else if (q.question_type === 'text' && customTexts[q.id]) {
-          doc.text(`${q.label_en}:`, 25, y);
-          y += 6;
-          const lines = doc.splitTextToSize(customTexts[q.id], pageWidth - 55);
-          doc.text(lines, 30, y);
-          y += lines.length * 6 + 3;
-        }
-      }
-      y += 5;
-    }
-
-    // Comment
-    const commentText = translatedComment || comment.trim();
-    if (commentText) {
-      if (y > 240) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.setFontSize(14);
-      doc.setTextColor(26, 54, 93);
-      doc.text('Guest Comment', 20, y);
-      y += 8;
-
-      doc.setFontSize(11);
-      doc.setTextColor(60, 60, 60);
-      const commentLines = doc.splitTextToSize(commentText, pageWidth - 50);
-      doc.text(commentLines, 25, y);
-    }
-
-    // Upload
-    const pdfBlob = doc.output('blob');
-    const fileName = `feedback_${feedbackId}_room${roomNumber}_${Date.now()}.pdf`;
-
-    const { error } = await supabase.storage
-      .from('feedback-pdfs')
-      .upload(fileName, pdfBlob, { contentType: 'application/pdf' });
-    if (error) throw error;
-
-    await (supabase.from('guest_feedback' as any) as any)
-      .update({ pdf_path: fileName })
-      .eq('id', feedbackId);
-  };
 
   if (loadingQuestions) {
     return (
