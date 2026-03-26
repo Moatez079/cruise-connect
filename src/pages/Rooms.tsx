@@ -324,6 +324,26 @@ const Rooms = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        <Dialog open={regenDialogOpen} onOpenChange={setRegenDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle className="font-serif flex items-center gap-2"><Globe className="w-5 h-5" /> Regenerate All QR Codes</DialogTitle></DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Domain (base URL)</Label>
+                <Input value={customDomain} onChange={e => setCustomDomain(e.target.value)} placeholder="https://yourdomain.com" className="bg-secondary/50" />
+                <p className="text-xs text-muted-foreground">QR links will be: {customDomain.replace(/\/+$/, '')}/guest/t/[secure-token]</p>
+              </div>
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-sm text-destructive">⚠️ This will regenerate ALL {rooms.length} QR codes with new secure tokens. Old printed QR codes will stop working.</p>
+              </div>
+              <Button onClick={() => regenerateAllMutation.mutate()} className="w-full" disabled={regenerateAllMutation.isPending || !customDomain.trim()}>
+                {regenerateAllMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Regenerate {rooms.length} QR Codes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
