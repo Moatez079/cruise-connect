@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronLeft, Loader2, Send, Star } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import jsPDF from 'jspdf';
+import { generateAndUploadFeedbackPDF } from '@/lib/feedbackPdf';
 
 interface Props {
   language: string;
