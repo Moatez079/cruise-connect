@@ -619,6 +619,9 @@ const Feedback = () => {
                         <><FileText className="w-4 h-4 mr-2" />Generate All PDFs ({feedbacks.filter(f => !f.pdf_path).length} missing)</>
                       )}
                     </Button>
+                    {!canDelete && (
+                      <Badge variant="outline" className="text-xs">Read Only</Badge>
+                    )}
                   </div>
                 )}
                 {feedbacks.map((fb) => (
