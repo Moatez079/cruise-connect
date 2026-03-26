@@ -111,7 +111,7 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       }
 
       // Compute overall as average of all ratings (map 4-level to 5-level: 1→2, 2→3, 3→4, 4→5)
-      const ratingValues = Object.values(allRatings).filter(v => v > 0);
+      const ratingValues = Object.values(ratings).filter(v => v > 0);
       const mappedOverall = ratingValues.length > 0
         ? Math.round(ratingValues.reduce((s, v) => s + (v + 1), 0) / ratingValues.length)
         : 3;
@@ -149,32 +149,8 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       if (error) throw error;
       const feedbackId = (feedback as any)?.id;
 
-      // Insert custom question answers
-      if (feedbackId && hasCustomQuestions) {
-        const answersToInsert = customQuestions
-          .filter(q => customRatings[q.id] || customTexts[q.id])
-          .map(q => ({
-            feedback_id: feedbackId,
-            question_id: q.id,
-            rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
-            text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
-          }));
-        if (answersToInsert.length > 0) {
-          await (supabase.from('feedback_answers' as any) as any).insert(answersToInsert);
-        }
-      }
-
-      // Generate PDF (mandatory - retry up to 2 times)
+      // Generate PDF (mandatory - retry up to 3 times)
       if (feedbackId) {
-        const customAnswersMapped = customQuestions
-          .filter(q => customRatings[q.id] || customTexts[q.id])
-          .map(q => ({
-            question_label: q.label_en,
-            question_type: q.question_type,
-            rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
-            text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
-          }));
-
         const pdfData = {
           id: feedbackId,
           room_number: roomNumber,
@@ -196,7 +172,17 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
         let pdfSuccess = false;
         for (let attempt = 0; attempt < 3 && !pdfSuccess; attempt++) {
           try {
-            await generateAndUploadFeedbackPDF(pdfData, customAnswersMapped);
+            await generateAndUploadFeedbackPDF(pdfData);
+            pdfSuccess = true;
+          } catch (pdfErr) {
+            console.warn(`PDF attempt ${attempt + 1} failed:`, pdfErr);
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+        if (!pdfSuccess) {
+          console.error('PDF generation failed after 3 attempts');
+        }
+      }
             pdfSuccess = true;
           } catch (pdfErr) {
             console.warn(`PDF attempt ${attempt + 1} failed:`, pdfErr);
