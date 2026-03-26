@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { generateAndUploadFeedbackPDF } from '@/lib/feedbackPdf';
 import DashboardLayout from '@/components/DashboardLayout';
@@ -92,6 +93,8 @@ const RatingBar = ({ label, value, count }: { label: string; value: number; coun
 };
 
 const Feedback = () => {
+  const { profile, isOwner } = useAuth();
+  const canDelete = isOwner || !!(profile as any)?.can_delete_feedback;
   const [feedbacks, setFeedbacks] = useState<FeedbackRow[]>([]);
   const [boats, setBoats] = useState<Boat[]>([]);
   const [selectedBoat, setSelectedBoat] = useState<string>('all');
@@ -345,6 +348,17 @@ const Feedback = () => {
   const sentimentColor = (s: string) => s === 'positive' ? 'text-green-600' : s === 'negative' ? 'text-red-600' : 'text-yellow-600';
   const sentimentIcon = (s: string) => s === 'positive' ? <ThumbsUp className="w-5 h-5" /> : s === 'negative' ? <TrendingDown className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />;
   const priorityColor = (p: string) => p === 'high' ? 'bg-red-100 text-red-700 border-red-200' : p === 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 'bg-green-100 text-green-700 border-green-200';
+
+  const deleteFeedback = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this feedback?')) return;
+    const { error } = await (supabase.from('guest_feedback' as any) as any).delete().eq('id', id);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      setFeedbacks(prev => prev.filter(f => f.id !== id));
+      toast({ title: 'Feedback deleted' });
+    }
+  };
 
   return (
     <DashboardLayout title="Guest Feedback" description="Analyze feedback and manage forms">
@@ -605,6 +619,9 @@ const Feedback = () => {
                         <><FileText className="w-4 h-4 mr-2" />Generate All PDFs ({feedbacks.filter(f => !f.pdf_path).length} missing)</>
                       )}
                     </Button>
+                    {!canDelete && (
+                      <Badge variant="outline" className="text-xs">Read Only</Badge>
+                    )}
                   </div>
                 )}
                 {feedbacks.map((fb) => (
@@ -694,6 +711,11 @@ const Feedback = () => {
                             ) : (
                               <><FileText className="w-3 h-3 mr-1" />Generate PDF</>
                             )}
+                          </Button>
+                        )}
+                        {canDelete && (
+                          <Button variant="outline" size="sm" onClick={() => deleteFeedback(fb.id)} className="text-destructive hover:text-destructive">
+                            <Trash2 className="w-3 h-3 mr-1" />Delete
                           </Button>
                         )}
                       </div>
