@@ -183,37 +183,47 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
         }
       }
 
-      // Generate PDF
+      // Generate PDF (mandatory - retry up to 2 times)
       if (feedbackId) {
-        try {
-          const customAnswersMapped = customQuestions
-            .filter(q => customRatings[q.id] || customTexts[q.id])
-            .map(q => ({
-              question_label: q.label_en,
-              question_type: q.question_type,
-              rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
-              text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
-            }));
+        const customAnswersMapped = customQuestions
+          .filter(q => customRatings[q.id] || customTexts[q.id])
+          .map(q => ({
+            question_label: q.label_en,
+            question_type: q.question_type,
+            rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
+            text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
+          }));
 
-          await generateAndUploadFeedbackPDF({
-            id: feedbackId,
-            room_number: roomNumber,
-            guest_language: language,
-            overall_rating: mappedOverall,
-            service_rating: avgOf(serviceItems),
-            cleanliness_rating: ratings['cleanliness'] ? ratings['cleanliness'] + 1 : null,
-            food_rating: avgOf(foodItems),
-            original_comment: originalComment || null,
-            translated_comment: combinedComment || null,
-            created_at: new Date().toISOString(),
-            boat_name: boatName,
-            guest_name: guestName.trim() || undefined,
-            company_name: companyName.trim() || undefined,
-            section_ratings: ratings,
-            section_comments: translatedComments,
-          }, customAnswersMapped);
-        } catch (pdfErr) {
-          console.warn('PDF generation failed:', pdfErr);
+        const pdfData = {
+          id: feedbackId,
+          room_number: roomNumber,
+          guest_language: language,
+          overall_rating: mappedOverall,
+          service_rating: avgOf(serviceItems),
+          cleanliness_rating: ratings['cleanliness'] ? ratings['cleanliness'] + 1 : null,
+          food_rating: avgOf(foodItems),
+          original_comment: originalComment || null,
+          translated_comment: combinedComment || null,
+          created_at: new Date().toISOString(),
+          boat_name: boatName,
+          guest_name: guestName.trim() || undefined,
+          company_name: companyName.trim() || undefined,
+          section_ratings: ratings,
+          section_comments: translatedComments,
+        };
+
+        let pdfSuccess = false;
+        for (let attempt = 0; attempt < 3 && !pdfSuccess; attempt++) {
+          try {
+            await generateAndUploadFeedbackPDF(pdfData, customAnswersMapped);
+            pdfSuccess = true;
+          } catch (pdfErr) {
+            console.warn(`PDF attempt ${attempt + 1} failed:`, pdfErr);
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+          }
+        }
+        if (!pdfSuccess) {
+          console.error('PDF generation failed after 3 attempts');
         }
       }
 
