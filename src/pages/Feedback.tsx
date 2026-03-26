@@ -710,6 +710,11 @@ const Feedback = () => {
                             )}
                           </Button>
                         )}
+                        {canDelete && (
+                          <Button variant="outline" size="sm" onClick={() => deleteFeedback(fb.id)} className="text-destructive hover:text-destructive">
+                            <Trash2 className="w-3 h-3 mr-1" />Delete
+                          </Button>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
