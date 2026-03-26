@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency, INVOICE_CATEGORIES, getTranslatedCategory } from '@/lib/currencies';
 import { t } from '@/lib/languages';
-import { Anchor, ChevronLeft, Receipt, CheckCircle2, Clock } from 'lucide-react';
+import { Anchor, ChevronLeft, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useBoatBranding } from '@/components/guest/BoatBrandingContext';
 import type { Tables } from '@/integrations/supabase/types';
@@ -20,6 +20,8 @@ interface Props {
   onBack?: () => void;
 }
 
+const SEPARATOR = ' ||| ';
+
 const GuestInvoice = ({ language, onBack }: Props) => {
   const { boatId, roomNumber } = useParams();
   const { logoUrl, primaryColor, boatName } = useBoatBranding();
@@ -35,7 +37,6 @@ const GuestInvoice = ({ language, onBack }: Props) => {
   useEffect(() => {
     if (!boatId || !roomNumber) return;
     const fetchInvoice = async () => {
-      // Check for any invoice (including draft)
       const { data: allInv } = await supabase
         .from('invoices')
         .select('*')
@@ -51,7 +52,6 @@ const GuestInvoice = ({ language, onBack }: Props) => {
         return;
       }
 
-      // If draft, show checkout message
       if (allInv.status === 'draft') {
         setNotVisible(true);
         setLoading(false);
@@ -68,39 +68,81 @@ const GuestInvoice = ({ language, onBack }: Props) => {
 
       const fetchedItems = rawItems || [];
 
-      // Translate item descriptions if not English
+      // Batch translate: combine all descriptions + farewell in one call
       if (lang !== 'en' && fetchedItems.length > 0) {
-        const translatedItems: TranslatedItem[] = await Promise.all(
-          fetchedItems.map(async (item) => {
-            try {
-              const res = await supabase.functions.invoke('translate', {
-                body: { text: item.description, sourceLang: 'en', targetLang: lang },
-              });
-              return { ...item, translatedDescription: res.data?.translatedText || item.description };
-            } catch {
-              return { ...item, translatedDescription: item.description };
-            }
-          })
-        );
-        setItems(translatedItems);
-      } else {
-        setItems(fetchedItems);
-      }
+        const allTexts = fetchedItems.map(i => i.description);
+        if (allInv.farewell_message) allTexts.push(allInv.farewell_message);
 
-      // Translate farewell
-      if (lang !== 'en' && allInv.farewell_message) {
+        const combinedText = allTexts.join(SEPARATOR);
+
         try {
           const res = await supabase.functions.invoke('translate', {
-            body: { text: allInv.farewell_message, sourceLang: 'en', targetLang: lang },
+            body: { text: combinedText, sourceLang: 'en', targetLang: lang },
           });
-          if (res.data?.translatedText) setTranslatedFarewell(res.data.translatedText);
-        } catch { /* fallback */ }
+
+          if (res.data?.translatedText) {
+            const parts = res.data.translatedText.split(SEPARATOR.trim());
+            const translatedItems: TranslatedItem[] = fetchedItems.map((item, idx) => ({
+              ...item,
+              translatedDescription: parts[idx]?.trim() || item.description,
+            }));
+            setItems(translatedItems);
+
+            // Last part is farewell if it was included
+            if (allInv.farewell_message && parts.length > fetchedItems.length) {
+              setTranslatedFarewell(parts[parts.length - 1]?.trim() || '');
+            }
+          } else {
+            setItems(fetchedItems);
+          }
+        } catch {
+          console.warn('Batch translation failed, showing original');
+          setItems(fetchedItems);
+        }
+      } else {
+        setItems(fetchedItems);
+
+        // Translate farewell only
+        if (lang !== 'en' && allInv.farewell_message) {
+          try {
+            const res = await supabase.functions.invoke('translate', {
+              body: { text: allInv.farewell_message, sourceLang: 'en', targetLang: lang },
+            });
+            if (res.data?.translatedText) setTranslatedFarewell(res.data.translatedText);
+          } catch { /* fallback */ }
+        }
       }
 
       setLoading(false);
     };
     fetchInvoice();
   }, [boatId, roomNumber, lang]);
+
+  // Realtime: listen for invoice status changes
+  useEffect(() => {
+    if (!invoice?.id) return;
+
+    const channel = supabase
+      .channel(`invoice-status-${invoice.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'invoices',
+          filter: `id=eq.${invoice.id}`,
+        },
+        (payload) => {
+          const updated = payload.new as Invoice;
+          setInvoice(updated);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [invoice?.id]);
 
   const accentStyle = primaryColor ? { color: primaryColor } : undefined;
   const accentBgLight = primaryColor ? { backgroundColor: `${primaryColor}12` } : undefined;
@@ -113,7 +155,6 @@ const GuestInvoice = ({ language, onBack }: Props) => {
     );
   }
 
-  // Show checkout message if invoice not visible yet
   if (notVisible) {
     return (
       <div className="min-h-screen flex flex-col bg-background px-4 py-6" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -144,6 +185,11 @@ const GuestInvoice = ({ language, onBack }: Props) => {
   const total = items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
   const farewell = translatedFarewell || invoice.farewell_message || '';
   const isPaid = invoice.status === 'paid' || invoice.status === 'closed';
+  const statusLabel = isPaid
+    ? t(lang, 'invoicePaid')
+    : invoice.status === 'visible'
+    ? t(lang, 'invoicePending') || 'Pending Payment'
+    : '';
 
   return (
     <div className="min-h-screen bg-background px-4 py-6" dir={isRTL ? 'rtl' : 'ltr'}>
@@ -170,17 +216,23 @@ const GuestInvoice = ({ language, onBack }: Props) => {
           </div>
         </div>
 
-        {/* Paid Badge */}
-        {isPaid && (
-          <div className="flex items-center gap-2 p-3 rounded-xl bg-accent/10 border border-accent/20 mb-5">
-            <CheckCircle2 className="w-5 h-5 text-accent shrink-0" />
-            <span className="text-sm font-medium text-accent">{t(lang, 'invoicePaid')}</span>
+        {/* Status Badge */}
+        {isPaid ? (
+          <div className="flex items-center gap-2 p-3 rounded-xl mb-5"
+            style={{ backgroundColor: '#dcfce7', border: '1px solid #86efac' }}>
+            <CheckCircle2 className="w-5 h-5 shrink-0" style={{ color: '#16a34a' }} />
+            <span className="text-sm font-medium" style={{ color: '#15803d' }}>{statusLabel}</span>
+          </div>
+        ) : invoice.status === 'visible' && (
+          <div className="flex items-center gap-2 p-3 rounded-xl mb-5"
+            style={{ backgroundColor: '#fef9c3', border: '1px solid #fde047' }}>
+            <Clock className="w-5 h-5 shrink-0" style={{ color: '#a16207' }} />
+            <span className="text-sm font-medium" style={{ color: '#854d0e' }}>{statusLabel}</span>
           </div>
         )}
 
         {/* Items Table */}
         <div className="rounded-xl border border-border overflow-hidden mb-5">
-          {/* Table Header */}
           <div className="grid grid-cols-12 gap-2 px-4 py-3 bg-secondary/50 text-xs font-medium text-muted-foreground uppercase tracking-wide">
             <div className="col-span-6">{t(lang, 'invoiceItems')}</div>
             <div className="col-span-2 text-center">{t(lang, 'quantity')}</div>
@@ -188,7 +240,6 @@ const GuestInvoice = ({ language, onBack }: Props) => {
             <div className="col-span-2 text-end">{t(lang, 'subtotal')}</div>
           </div>
 
-          {/* Table Rows */}
           {items.map((item, idx) => {
             const cat = INVOICE_CATEGORIES.find(c => c.value === item.category);
             const displayDesc = (item as TranslatedItem).translatedDescription || item.description;
