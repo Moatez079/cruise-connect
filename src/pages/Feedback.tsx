@@ -589,6 +589,22 @@ const Feedback = () => {
               </Card>
             ) : (
               <div className="space-y-4">
+                {/* Bulk generate button */}
+                {feedbacks.some(f => !f.pdf_path) && (
+                  <div className="flex items-center gap-3">
+                    <Button
+                      variant="outline"
+                      onClick={generateAllPdfs}
+                      disabled={bulkGenerating}
+                    >
+                      {bulkGenerating ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating {bulkProgress.done}/{bulkProgress.total}...</>
+                      ) : (
+                        <><FileText className="w-4 h-4 mr-2" />Generate All PDFs ({feedbacks.filter(f => !f.pdf_path).length} missing)</>
+                      )}
+                    </Button>
+                  </div>
+                )}
                 {feedbacks.map((fb) => (
                   <Card key={fb.id} className="border-border/50">
                     <CardHeader className="pb-3">
