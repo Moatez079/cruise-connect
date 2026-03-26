@@ -118,7 +118,7 @@ const GuestApp = () => {
 
   return (
     <BoatBrandingProvider boatId={resolvedBoatId}>
-      <div className="min-h-screen bg-background">
+      <div className="guest-theme min-h-screen bg-background">
         {view === 'language' && (
           <GuestLanguageSelect onSelect={handleLanguageSelect} />
         )}

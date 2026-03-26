@@ -65,3 +65,62 @@
     font-family: 'Playfair Display', serif;
   }
 }
+
+/* Guest App: Light, high-contrast theme for elderly users */
+.guest-theme {
+  --background: 40 20% 97%;
+  --foreground: 220 30% 12%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 220 30% 12%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 30% 12%;
+
+  --primary: 43 72% 45%;
+  --primary-foreground: 0 0% 100%;
+
+  --secondary: 220 15% 92%;
+  --secondary-foreground: 220 30% 12%;
+
+  --muted: 220 10% 90%;
+  --muted-foreground: 220 15% 40%;
+
+  --accent: 43 72% 45%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 72% 45%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 15% 82%;
+  --input: 220 15% 82%;
+  --ring: 43 72% 45%;
+}
+
+.guest-theme body,
+.guest-theme {
+  font-size: 17px;
+}
+
+.guest-theme .text-sm {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.guest-theme .text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.guest-theme .text-base {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.guest-theme .text-lg {
+  font-size: 1.25rem;
+}
+
+.guest-theme .text-2xl {
+  font-size: 1.75rem;
+}
