@@ -122,6 +122,7 @@ const Feedback = () => {
   const [bulkGenerating, setBulkGenerating] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
 
+  useEffect(() => {
     const fetchBoats = async () => {
       const { data } = await supabase.from('boats').select('id, name');
       if (data) setBoats(data);
