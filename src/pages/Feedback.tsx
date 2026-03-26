@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { generateAndUploadFeedbackPDF } from '@/lib/feedbackPdf';
 import DashboardLayout from '@/components/DashboardLayout';
