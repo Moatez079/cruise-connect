@@ -94,29 +94,29 @@ const InvoicePrint = () => {
         }
       `}</style>
 
-      <div className="max-w-2xl mx-auto p-8 bg-white text-gray-900" style={{ color: '#111827' }}>
+      <div className="max-w-2xl mx-auto p-8" style={{ background: 'white', color: '#111827' }}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 pb-6 border-b border-border/50 print:border-gray-200">
+        <div className="flex items-center justify-between mb-8 pb-6" style={{ borderBottom: '1px solid #e5e7eb' }}>
           <div className="flex items-center gap-3">
             {logoUrl ? (
               <img src={logoUrl} alt={boatName} className="w-12 h-12 rounded-lg object-contain" />
             ) : (
-              <div className="p-2 rounded-lg bg-primary/10 print:bg-amber-50">
-                <Anchor className="w-8 h-8 text-primary print:text-amber-700" />
+              <div className="p-2 rounded-lg" style={{ backgroundColor: '#fef3c7' }}>
+                <Anchor className="w-8 h-8" style={{ color: '#92400e' }} />
               </div>
             )}
             <div>
-              <h1 className="text-2xl font-serif font-bold text-foreground print:text-gray-900">
+              <h1 className="text-2xl font-serif font-bold" style={{ color: '#111827' }}>
                 {boatName || 'Floating Hotel'}
               </h1>
-              <p className="text-sm text-muted-foreground print:text-gray-500">Guest Invoice</p>
+              <p className="text-sm" style={{ color: '#6b7280' }}>Guest Invoice</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm font-medium text-foreground print:text-gray-900">
+            <p className="text-sm font-medium" style={{ color: '#111827' }}>
               Room {invoice.room_number}
             </p>
-            <p className="text-xs text-muted-foreground print:text-gray-500">
+            <p className="text-xs" style={{ color: '#6b7280' }}>
               {new Date(invoice.created_at).toLocaleDateString()}
             </p>
           </div>
@@ -125,24 +125,24 @@ const InvoicePrint = () => {
         {/* Items table */}
         <table className="w-full mb-8">
           <thead>
-            <tr className="border-b border-border/50 print:border-gray-200">
-              <th className="text-left py-3 text-sm font-medium text-muted-foreground print:text-gray-600">Item</th>
-              <th className="text-left py-3 text-sm font-medium text-muted-foreground print:text-gray-600">Description</th>
-              <th className="text-right py-3 text-sm font-medium text-muted-foreground print:text-gray-600">Qty</th>
-              <th className="text-right py-3 text-sm font-medium text-muted-foreground print:text-gray-600">Price</th>
-              <th className="text-right py-3 text-sm font-medium text-muted-foreground print:text-gray-600">Total</th>
+            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+              <th className="text-left py-3 text-sm font-medium" style={{ color: '#4b5563' }}>Item</th>
+              <th className="text-left py-3 text-sm font-medium" style={{ color: '#4b5563' }}>Description</th>
+              <th className="text-right py-3 text-sm font-medium" style={{ color: '#4b5563' }}>Qty</th>
+              <th className="text-right py-3 text-sm font-medium" style={{ color: '#4b5563' }}>Price</th>
+              <th className="text-right py-3 text-sm font-medium" style={{ color: '#4b5563' }}>Total</th>
             </tr>
           </thead>
           <tbody>
             {items.map((item, idx) => {
               const cat = INVOICE_CATEGORIES.find(c => c.value === item.category);
               return (
-                <tr key={item.id} className={idx < items.length - 1 ? 'border-b border-border/30 print:border-gray-100' : ''}>
-                  <td className="py-3 text-sm">{cat?.emoji} {cat?.label || item.category}</td>
-                  <td className="py-3 text-sm">{item.description}</td>
-                  <td className="py-3 text-sm text-right">{item.quantity}</td>
-                  <td className="py-3 text-sm text-right">{formatCurrency(item.unit_price, invoice.currency)}</td>
-                  <td className="py-3 text-sm text-right font-medium">{formatCurrency(item.quantity * item.unit_price, invoice.currency)}</td>
+                <tr key={item.id} style={idx < items.length - 1 ? { borderBottom: '1px solid #f3f4f6' } : undefined}>
+                  <td className="py-3 text-sm" style={{ color: '#111827' }}>{cat?.emoji} {cat?.label || item.category}</td>
+                  <td className="py-3 text-sm" style={{ color: '#111827' }}>{item.description}</td>
+                  <td className="py-3 text-sm text-right" style={{ color: '#111827' }}>{item.quantity}</td>
+                  <td className="py-3 text-sm text-right" style={{ color: '#111827' }}>{formatCurrency(item.unit_price, invoice.currency)}</td>
+                  <td className="py-3 text-sm text-right font-medium" style={{ color: '#111827' }}>{formatCurrency(item.quantity * item.unit_price, invoice.currency)}</td>
                 </tr>
               );
             })}
@@ -150,10 +150,10 @@ const InvoicePrint = () => {
         </table>
 
         {/* Total */}
-        <div className="flex justify-end mb-10 pt-4 border-t-2 border-primary/30 print:border-amber-300">
+        <div className="flex justify-end mb-10 pt-4" style={{ borderTop: '2px solid #d97706' }}>
           <div className="text-right">
-            <p className="text-sm text-muted-foreground print:text-gray-500">Total Amount</p>
-            <p className="text-3xl font-serif font-bold text-primary print:text-amber-700">
+            <p className="text-sm" style={{ color: '#4b5563' }}>Total Amount</p>
+            <p className="text-3xl font-serif font-bold" style={{ color: '#92400e' }}>
               {formatCurrency(total, invoice.currency)}
             </p>
           </div>
@@ -162,18 +162,19 @@ const InvoicePrint = () => {
         {/* Farewell message */}
         {farewell && (
           <div
-            className="text-center p-6 rounded-xl bg-primary/5 border border-primary/20 print:bg-amber-50 print:border-amber-200"
+            className="text-center p-6 rounded-xl"
+            style={{ backgroundColor: '#fef9ee', border: '1px solid #fde68a' }}
             dir={invoice.guest_language === 'ar' ? 'rtl' : 'ltr'}
           >
-            <p className="text-sm italic text-foreground/80 print:text-gray-700 leading-relaxed">
+            <p className="text-sm italic leading-relaxed" style={{ color: '#374151' }}>
               {farewell}
             </p>
           </div>
         )}
 
         {/* Footer */}
-        <div className="mt-8 pt-4 border-t border-border/30 print:border-gray-200 text-center">
-          <p className="text-xs text-muted-foreground print:text-gray-400">
+        <div className="mt-8 pt-4 text-center" style={{ borderTop: '1px solid #e5e7eb' }}>
+          <p className="text-xs" style={{ color: '#6b7280' }}>
             {boatName} • Generated on {new Date().toLocaleDateString()}
           </p>
         </div>
