@@ -183,16 +183,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
           console.error('PDF generation failed after 3 attempts');
         }
       }
-            pdfSuccess = true;
-          } catch (pdfErr) {
-            console.warn(`PDF attempt ${attempt + 1} failed:`, pdfErr);
-            if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
-          }
-        }
-        if (!pdfSuccess) {
-          console.error('PDF generation failed after 3 attempts');
-        }
-      }
 
       onSuccess();
     } catch (err: any) {
@@ -201,14 +191,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       setSending(false);
     }
   };
-
-  if (loadingQuestions) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
