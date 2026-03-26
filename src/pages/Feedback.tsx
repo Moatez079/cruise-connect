@@ -117,7 +117,11 @@ const Feedback = () => {
   const [editType, setEditType] = useState('rating');
   const [editRequired, setEditRequired] = useState(false);
 
-  useEffect(() => {
+  // PDF generation state
+  const [generatingPdfId, setGeneratingPdfId] = useState<string | null>(null);
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState({ done: 0, total: 0 });
+
     const fetchBoats = async () => {
       const { data } = await supabase.from('boats').select('id, name');
       if (data) setBoats(data);
