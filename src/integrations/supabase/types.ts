@@ -192,6 +192,7 @@ export type Database = {
           label_en: string
           question_type: string
           required: boolean
+          section: string | null
           sort_order: number
         }
         Insert: {
@@ -202,6 +203,7 @@ export type Database = {
           label_en: string
           question_type?: string
           required?: boolean
+          section?: string | null
           sort_order?: number
         }
         Update: {
@@ -212,6 +214,7 @@ export type Database = {
           label_en?: string
           question_type?: string
           required?: boolean
+          section?: string | null
           sort_order?: number
         }
         Relationships: [
@@ -228,9 +231,11 @@ export type Database = {
         Row: {
           boat_id: string
           cleanliness_rating: number | null
+          company_name: string | null
           created_at: string
           food_rating: number | null
           guest_language: string
+          guest_name: string | null
           id: string
           original_comment: string | null
           overall_rating: number
@@ -242,9 +247,11 @@ export type Database = {
         Insert: {
           boat_id: string
           cleanliness_rating?: number | null
+          company_name?: string | null
           created_at?: string
           food_rating?: number | null
           guest_language?: string
+          guest_name?: string | null
           id?: string
           original_comment?: string | null
           overall_rating: number
@@ -256,9 +263,11 @@ export type Database = {
         Update: {
           boat_id?: string
           cleanliness_rating?: number | null
+          company_name?: string | null
           created_at?: string
           food_rating?: number | null
           guest_language?: string
+          guest_name?: string | null
           id?: string
           original_comment?: string | null
           overall_rating?: number
