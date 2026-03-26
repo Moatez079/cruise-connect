@@ -64,27 +64,9 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
-  const [customQuestions, setCustomQuestions] = useState<any[]>([]);
-  const [customRatings, setCustomRatings] = useState<Record<string, number>>({});
-  const [customTexts, setCustomTexts] = useState<Record<string, string>>({});
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
   const { toast } = useToast();
 
   const isRtl = language === 'ar';
-
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      const { data } = await (supabase.from('feedback_questions' as any) as any)
-        .select('*')
-        .eq('boat_id', boatId)
-        .order('sort_order');
-      if (data) setCustomQuestions(data);
-      setLoadingQuestions(false);
-    };
-    fetchQuestions();
-  }, [boatId]);
-
-  const hasCustomQuestions = customQuestions.length > 0;
 
   const setRating = (key: string, value: number) => {
     setRatings((prev) => ({ ...prev, [key]: value }));
