@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency, INVOICE_CATEGORIES } from '@/lib/currencies';
+import { formatCurrency, INVOICE_CATEGORIES, getTranslatedCategory } from '@/lib/currencies';
 import { t } from '@/lib/languages';
 import { Anchor, ChevronLeft, Receipt, CheckCircle2, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -192,6 +192,7 @@ const GuestInvoice = ({ language, onBack }: Props) => {
           {items.map((item, idx) => {
             const cat = INVOICE_CATEGORIES.find(c => c.value === item.category);
             const displayDesc = (item as TranslatedItem).translatedDescription || item.description;
+            const translatedCatLabel = getTranslatedCategory(item.category, lang);
             const lineTotal = item.quantity * item.unit_price;
             return (
               <div
@@ -204,6 +205,7 @@ const GuestInvoice = ({ language, onBack }: Props) => {
                   <p className="text-sm font-medium text-foreground">
                     {cat?.emoji} {displayDesc}
                   </p>
+                  <p className="text-xs text-muted-foreground">{translatedCatLabel}</p>
                 </div>
                 <div className="col-span-2 text-center text-sm text-muted-foreground">
                   {item.quantity}
