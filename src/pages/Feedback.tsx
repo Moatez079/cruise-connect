@@ -281,6 +281,65 @@ const Feedback = () => {
     window.open(data.publicUrl, '_blank');
   };
 
+  const generatePdfForFeedback = async (fb: FeedbackRow) => {
+    setGeneratingPdfId(fb.id);
+    try {
+      const fbAnswers = answers[fb.id] || [];
+      const customAnswersMapped = fbAnswers.map(a => ({
+        question_label: getQuestionLabel(a.question_id),
+        question_type: questions.find(q => q.id === a.question_id)?.question_type || 'rating',
+        rating_value: a.rating_value,
+        text_value: a.text_value,
+      }));
+
+      const fileName = await generateAndUploadFeedbackPDF(
+        { ...fb, boat_name: getBoatName(fb.boat_id) },
+        customAnswersMapped
+      );
+
+      setFeedbacks(prev => prev.map(f => f.id === fb.id ? { ...f, pdf_path: fileName } : f));
+      toast({ title: 'PDF generated!' });
+    } catch (err: any) {
+      toast({ title: 'PDF failed', description: err.message, variant: 'destructive' });
+    } finally {
+      setGeneratingPdfId(null);
+    }
+  };
+
+  const generateAllPdfs = async () => {
+    const missing = feedbacks.filter(f => !f.pdf_path);
+    if (missing.length === 0) {
+      toast({ title: 'All responses already have PDFs' });
+      return;
+    }
+    setBulkGenerating(true);
+    setBulkProgress({ done: 0, total: missing.length });
+
+    for (const fb of missing) {
+      try {
+        const fbAnswers = answers[fb.id] || [];
+        const customAnswersMapped = fbAnswers.map(a => ({
+          question_label: getQuestionLabel(a.question_id),
+          question_type: questions.find(q => q.id === a.question_id)?.question_type || 'rating',
+          rating_value: a.rating_value,
+          text_value: a.text_value,
+        }));
+
+        const fileName = await generateAndUploadFeedbackPDF(
+          { ...fb, boat_name: getBoatName(fb.boat_id) },
+          customAnswersMapped
+        );
+        setFeedbacks(prev => prev.map(f => f.id === fb.id ? { ...f, pdf_path: fileName } : f));
+      } catch (err) {
+        console.warn(`PDF failed for ${fb.id}:`, err);
+      }
+      setBulkProgress(prev => ({ ...prev, done: prev.done + 1 }));
+    }
+
+    setBulkGenerating(false);
+    toast({ title: `Generated ${missing.length} PDFs!` });
+  };
+
   const sentimentColor = (s: string) => s === 'positive' ? 'text-green-600' : s === 'negative' ? 'text-red-600' : 'text-yellow-600';
   const sentimentIcon = (s: string) => s === 'positive' ? <ThumbsUp className="w-5 h-5" /> : s === 'negative' ? <TrendingDown className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />;
   const priorityColor = (p: string) => p === 'high' ? 'bg-red-100 text-red-700 border-red-200' : p === 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-200' : 'bg-green-100 text-green-700 border-green-200';
