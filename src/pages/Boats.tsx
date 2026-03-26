@@ -80,26 +80,44 @@ const Boats = () => {
       <div className="space-y-6 animate-fade-in">
         <div className="flex justify-between items-center">
           <p className="text-muted-foreground">{boats.length} boat{boats.length !== 1 ? 's' : ''}</p>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <Dialog open={dialogOpen} onOpenChange={(open) => {
+            setDialogOpen(open);
+            if (!open) { setEditBoat(null); setName(''); setDescription(''); }
+          }}>
             <DialogTrigger asChild>
               <Button onClick={openCreate}>
                 <Plus className="w-4 h-4 mr-2" /> Add Boat
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
               <DialogHeader>
                 <DialogTitle className="font-serif">{editBoat ? 'Edit Boat' : 'Add New Boat'}</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 <div className="space-y-2">
-                  <Label>Boat Name</Label>
-                  <Input value={name} onChange={e => setName(e.target.value)} placeholder="MS Ocean Star" className="bg-secondary/50" />
+                  <Label htmlFor="boat-name">Boat Name</Label>
+                  <Input
+                    id="boat-name"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="MS Ocean Star"
+                    className="bg-secondary/50"
+                    autoFocus
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label>Description</Label>
-                  <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Luxury cruise ship..." className="bg-secondary/50" />
+                  <Label htmlFor="boat-desc">Description</Label>
+                  <Textarea
+                    id="boat-desc"
+                    value={description}
+                    onChange={e => setDescription(e.target.value)}
+                    placeholder="Luxury cruise ship..."
+                    className="bg-secondary/50"
+                  />
                 </div>
-                <Button onClick={handleSave} className="w-full">{editBoat ? 'Save Changes' : 'Create Boat'}</Button>
+                <Button onClick={handleSave} className="w-full" disabled={!name.trim()}>
+                  {editBoat ? 'Save Changes' : 'Create Boat'}
+                </Button>
               </div>
             </DialogContent>
           </Dialog>
