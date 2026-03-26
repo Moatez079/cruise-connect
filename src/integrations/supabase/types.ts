@@ -541,6 +541,7 @@ export type Database = {
           created_at: string
           id: string
           qr_code_data: string | null
+          qr_token: string | null
           room_number: number
           room_type: Database["public"]["Enums"]["room_type"]
           status: Database["public"]["Enums"]["room_status"]
@@ -552,6 +553,7 @@ export type Database = {
           created_at?: string
           id?: string
           qr_code_data?: string | null
+          qr_token?: string | null
           room_number: number
           room_type?: Database["public"]["Enums"]["room_type"]
           status?: Database["public"]["Enums"]["room_status"]
@@ -563,6 +565,7 @@ export type Database = {
           created_at?: string
           id?: string
           qr_code_data?: string | null
+          qr_token?: string | null
           room_number?: number
           room_type?: Database["public"]["Enums"]["room_type"]
           status?: Database["public"]["Enums"]["room_status"]
