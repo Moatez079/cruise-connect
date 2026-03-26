@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 import { BoatBrandingProvider } from '@/components/guest/BoatBrandingContext';
 import GuestLanguageSelect from '@/components/guest/GuestLanguageSelect';
 import GuestMainMenu from '@/components/guest/GuestMainMenu';
@@ -29,37 +30,59 @@ const loadSession = () => {
 
 const GuestApp = () => {
   const { boatId, roomNumber } = useParams();
+  const { token } = useParams();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const [language, setLanguage] = useState('');
   const [view, setView] = useState<GuestView>('language');
   const [resolved, setResolved] = useState(false);
+  const [resolvedBoatId, setResolvedBoatId] = useState(boatId || '');
+  const [resolvedRoomNumber, setResolvedRoomNumber] = useState(roomNumber ? parseInt(roomNumber) : 0);
 
   // Read initial view from search params for deep linking
   const initialView = searchParams.get('view') as GuestView | null;
 
-  // If no params (PWA opened to /guest), restore from localStorage
+  // Resolve token or params to boatId + roomNumber
   useEffect(() => {
+    if (token) {
+      supabase.from('rooms').select('boat_id, room_number').eq('qr_token', token).maybeSingle()
+        .then(({ data }) => {
+          if (data) {
+            setResolvedBoatId(data.boat_id);
+            setResolvedRoomNumber(data.room_number);
+            saveSession(data.boat_id, data.room_number, '');
+          }
+          setResolved(true);
+        });
+      return;
+    }
+
     if (!boatId || !roomNumber) {
       const session = loadSession();
       if (session) {
-        navigate(`/guest/${session.boatId}/${session.roomNumber}`, { replace: true });
+        setResolvedBoatId(session.boatId);
+        setResolvedRoomNumber(session.roomNumber);
+        setResolved(true);
         return;
       }
     }
+
+    if (boatId && roomNumber) {
+      setResolvedBoatId(boatId);
+      setResolvedRoomNumber(parseInt(roomNumber));
+    }
     setResolved(true);
-  }, [boatId, roomNumber, navigate]);
+  }, [boatId, roomNumber, token]);
 
   // Auto-restore language from saved session
   useEffect(() => {
-    if (resolved && boatId && roomNumber && !language) {
+    if (resolved && resolvedBoatId && resolvedRoomNumber && !language) {
       const session = loadSession();
-      if (session && session.boatId === boatId && String(session.roomNumber) === roomNumber) {
+      if (session && session.boatId === resolvedBoatId && session.roomNumber === resolvedRoomNumber) {
         setLanguage(session.language);
         setView(initialView || 'menu');
       }
     }
-  }, [resolved, boatId, roomNumber, language, initialView]);
+  }, [resolved, resolvedBoatId, resolvedRoomNumber, language, initialView]);
 
   // Register service worker
   useEffect(() => {
@@ -70,7 +93,7 @@ const GuestApp = () => {
 
   if (!resolved) return null;
 
-  if (!boatId || !roomNumber) {
+  if (!resolvedBoatId || !resolvedRoomNumber) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <p className="text-muted-foreground">Invalid QR code. Please scan a valid room QR code.</p>
@@ -78,12 +101,10 @@ const GuestApp = () => {
     );
   }
 
-  const roomNum = parseInt(roomNumber);
-
   const handleLanguageSelect = (lang: string) => {
     setLanguage(lang);
     setView('menu');
-    saveSession(boatId, roomNum, lang);
+    saveSession(resolvedBoatId, resolvedRoomNumber, lang);
   };
 
   const handleBack = () => {
@@ -96,7 +117,7 @@ const GuestApp = () => {
   };
 
   return (
-    <BoatBrandingProvider boatId={boatId}>
+    <BoatBrandingProvider boatId={resolvedBoatId}>
       <div className="min-h-screen bg-background">
         {view === 'language' && (
           <GuestLanguageSelect onSelect={handleLanguageSelect} />
@@ -104,8 +125,8 @@ const GuestApp = () => {
         {view === 'menu' && (
           <GuestMainMenu
             language={language}
-            roomNumber={roomNum}
-            boatId={boatId}
+            roomNumber={resolvedRoomNumber}
+            boatId={resolvedBoatId}
             onNavigate={(v) => setView(v as GuestView)}
             onBack={handleBack}
           />
@@ -113,8 +134,8 @@ const GuestApp = () => {
         {view === 'room_service' && (
           <GuestRoomService
             language={language}
-            boatId={boatId}
-            roomNumber={roomNum}
+            boatId={resolvedBoatId}
+            roomNumber={resolvedRoomNumber}
             onBack={handleBack}
             onSuccess={handleRequestSent}
           />
@@ -122,8 +143,8 @@ const GuestApp = () => {
         {view === 'drinks' && (
           <GuestDrinksMenu
             language={language}
-            boatId={boatId}
-            roomNumber={roomNum}
+            boatId={resolvedBoatId}
+            roomNumber={resolvedRoomNumber}
             onBack={handleBack}
             onSuccess={handleRequestSent}
           />
@@ -131,8 +152,8 @@ const GuestApp = () => {
         {view === 'custom' && (
           <GuestCustomRequest
             language={language}
-            boatId={boatId}
-            roomNumber={roomNum}
+            boatId={resolvedBoatId}
+            roomNumber={resolvedRoomNumber}
             onBack={handleBack}
             onSuccess={handleRequestSent}
           />
@@ -140,8 +161,8 @@ const GuestApp = () => {
         {view === 'feedback' && (
           <GuestFeedback
             language={language}
-            boatId={boatId}
-            roomNumber={roomNum}
+            boatId={resolvedBoatId}
+            roomNumber={resolvedRoomNumber}
             onBack={handleBack}
             onSuccess={handleRequestSent}
           />
