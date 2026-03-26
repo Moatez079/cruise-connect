@@ -31,6 +31,17 @@ const statusColors: Record<string, string> = {
 
 const roomTypeLabels: Record<string, string> = { room: 'Room', suite: 'Suite' };
 const bedTypeLabels: Record<string, string> = { king: 'King Size', twin: 'Twin Bed' };
+const PUBLISHED_GUEST_APP_ORIGIN = 'https://cruises-connect.lovable.app';
+
+const getGuestAppOrigin = () => {
+  const { hostname, origin } = window.location;
+
+  if (hostname.includes('id-preview--') || hostname.endsWith('.lovableproject.com')) {
+    return PUBLISHED_GUEST_APP_ORIGIN;
+  }
+
+  return origin;
+};
 
 const Rooms = () => {
   const { toast } = useToast();
@@ -71,7 +82,7 @@ const Rooms = () => {
       for (let i = 0; i < count; i++) {
         while (existingNumbers.includes(num)) num++;
         if (num > 9999) break;
-        const qrData = `${window.location.origin}/guest/${effectiveBoatId}/${num}`;
+        const qrData = `${getGuestAppOrigin()}/guest/${effectiveBoatId}/${num}`;
         newRooms.push({ boat_id: effectiveBoatId, room_number: num, qr_code_data: qrData });
         existingNumbers.push(num);
         num++;
@@ -94,7 +105,7 @@ const Rooms = () => {
       const num = parseInt(newRoomNumber);
       if (!num || num < 1) throw new Error('Invalid room number');
       if (rooms.some(r => r.id !== selectedRoom.id && r.room_number === num)) throw new Error('Room number already exists');
-      const qrData = `${window.location.origin}/guest/${effectiveBoatId}/${num}`;
+      const qrData = `${getGuestAppOrigin()}/guest/${effectiveBoatId}/${num}`;
       const { error } = await supabase.from('rooms').update({
         room_number: num, qr_code_data: qrData, room_type: newRoomType as any, bed_type: newBedType as any,
       }).eq('id', selectedRoom.id);
