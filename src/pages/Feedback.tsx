@@ -31,6 +31,8 @@ interface FeedbackRow {
   translated_comment: string | null;
   pdf_path: string | null;
   created_at: string;
+  guest_name: string | null;
+  company_name: string | null;
 }
 
 interface FeedbackQuestion {
