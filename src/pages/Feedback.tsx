@@ -4,7 +4,7 @@ import { generateAndUploadFeedbackPDF } from '@/lib/feedbackPdf';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star, MessageSquare, Download, Sparkles, Loader2, Trash2, Plus, Pencil, Check, X, TrendingUp, TrendingDown, AlertTriangle, ThumbsUp, BarChart3, Brain } from 'lucide-react';
+import { Star, MessageSquare, Download, Sparkles, Loader2, Trash2, Plus, Pencil, Check, X, TrendingUp, TrendingDown, AlertTriangle, ThumbsUp, BarChart3, Brain, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
