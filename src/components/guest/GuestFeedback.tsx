@@ -296,43 +296,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
             </motion.div>
           ))}
 
-          {/* Custom Questions (dynamic from admin) */}
-          {hasCustomQuestions && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-card rounded-xl p-4 border border-border/50"
-            >
-              <h2 className="text-base font-bold text-foreground mb-4">
-                Additional Questions
-              </h2>
-              <div className="space-y-4">
-                {customQuestions.map((q: any) => (
-                  <div key={q.id}>
-                    <p className="text-sm font-medium text-foreground mb-2">
-                      {q.label_en}
-                      {q.required && <span className="text-destructive ml-1">*</span>}
-                    </p>
-                    {q.question_type === 'rating' ? (
-                      <PillRating
-                        value={customRatings[q.id] || 0}
-                        onChange={(v) => setCustomRatings(prev => ({ ...prev, [q.id]: v }))}
-                        lang={language}
-                      />
-                    ) : (
-                      <Textarea
-                        value={customTexts[q.id] || ''}
-                        onChange={(e) => setCustomTexts(prev => ({ ...prev, [q.id]: e.target.value }))}
-                        className="min-h-[80px] bg-background/50 border-border/50 text-base resize-none"
-                        dir={isRtl ? 'rtl' : 'ltr'}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
 
           {/* Submit */}
           <motion.div
