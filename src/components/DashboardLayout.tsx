@@ -15,11 +15,11 @@ const DashboardLayout = ({ children, title, description }: DashboardLayoutProps)
       <div className="min-h-screen flex w-full">
         <AppSidebar />
         <div className="flex-1 flex flex-col">
-          <header className="h-14 flex items-center gap-4 border-b border-border/50 px-4">
-            <SidebarTrigger className="text-muted-foreground hover:text-foreground" />
+          <header className="h-14 flex items-center gap-4 bg-sidebar border-b border-sidebar-border px-4">
+            <SidebarTrigger className="text-sidebar-foreground hover:text-sidebar-primary" />
             <div className="flex-1">
-              <h1 className="font-serif text-lg font-semibold text-foreground">{title}</h1>
-              {description && <p className="text-xs text-muted-foreground">{description}</p>}
+              <h1 className="font-serif text-lg font-semibold text-sidebar-accent-foreground">{title}</h1>
+              {description && <p className="text-xs text-sidebar-foreground">{description}</p>}
             </div>
             <NotificationBell />
           </header>
