@@ -595,7 +595,7 @@ const Feedback = () => {
           {/* RESPONSES TAB */}
           <TabsContent value="responses" className="space-y-4">
             {loading ? (
-              <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-32 w-full" />)}</div>
+              <div className="space-y-4">{[1, 2, 3].map(i => <Skeleton key={i} className="h-24 w-full rounded-xl" />)}</div>
             ) : feedbacks.length === 0 ? (
               <Card>
                 <CardContent className="flex flex-col items-center justify-center py-12">
@@ -604,12 +604,13 @@ const Feedback = () => {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-4">
-                {/* Bulk generate button */}
-                {feedbacks.some(f => !f.pdf_path) && (
-                  <div className="flex items-center gap-3">
+              <div className="space-y-3">
+                {/* Bulk actions */}
+                <div className="flex items-center gap-3 flex-wrap">
+                  {feedbacks.some(f => !f.pdf_path) && (
                     <Button
                       variant="outline"
+                      size="sm"
                       onClick={generateAllPdfs}
                       disabled={bulkGenerating}
                     >
@@ -619,103 +620,66 @@ const Feedback = () => {
                         <><FileText className="w-4 h-4 mr-2" />Generate All PDFs ({feedbacks.filter(f => !f.pdf_path).length} missing)</>
                       )}
                     </Button>
-                    {!canDelete && (
-                      <Badge variant="outline" className="text-xs">Read Only</Badge>
-                    )}
-                  </div>
-                )}
+                  )}
+                  {!canDelete && (
+                    <Badge variant="outline" className="text-xs">Read Only</Badge>
+                  )}
+                </div>
+
+                {/* Response Cards - Clean style like reference */}
                 {feedbacks.map((fb) => (
-                  <Card key={fb.id} className="border-border/50">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <CardTitle className="text-sm font-medium">
-                            Room {fb.room_number} · {getBoatName(fb.boat_id)}
-                          </CardTitle>
-                          {(fb.guest_name || fb.company_name) && (
-                            <CardDescription className="text-xs mt-0.5">
-                              {fb.guest_name}{fb.company_name ? ` — ${fb.company_name}` : ''}
-                            </CardDescription>
+                  <Card key={fb.id} className="rounded-xl shadow-sm border border-border/60 hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex items-center gap-3">
+                          {canDelete && (
+                            <button
+                              onClick={() => deleteFeedback(fb.id)}
+                              className="w-6 h-6 rounded-full border-2 border-muted-foreground/30 hover:border-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
+                              title="Delete"
+                            />
                           )}
+                          <div>
+                            <h3 className="text-lg font-bold text-foreground">Room {fb.room_number}</h3>
+                            {(fb.guest_name || fb.company_name) && (
+                              <p className="text-xs text-muted-foreground">
+                                {fb.guest_name}{fb.company_name ? ` · ${fb.company_name}` : ''}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(fb.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">Overall</p>
-                          <StarDisplay rating={fb.overall_rating} />
-                        </div>
-                        {fb.service_rating && (
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">Service</p>
-                            <StarDisplay rating={fb.service_rating} />
-                          </div>
-                        )}
-                        {fb.cleanliness_rating && (
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">Cleanliness</p>
-                            <StarDisplay rating={fb.cleanliness_rating} />
-                          </div>
-                        )}
-                        {fb.food_rating && (
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">Food</p>
-                            <StarDisplay rating={fb.food_rating} />
-                          </div>
-                        )}
+                        <Badge variant="outline" className="text-xs font-semibold uppercase tracking-wide bg-muted/50">
+                          {fb.guest_language.toUpperCase()}
+                        </Badge>
                       </div>
 
-                      {answers[fb.id] && answers[fb.id].length > 0 && (
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 border-t border-border/30">
-                          {answers[fb.id].map(a => (
-                            <div key={a.id}>
-                              <p className="text-xs text-muted-foreground mb-1">{getQuestionLabel(a.question_id)}</p>
-                              {a.rating_value ? <StarDisplay rating={a.rating_value} /> : <p className="text-sm">{a.text_value || '—'}</p>}
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                      <p className="text-sm text-muted-foreground mb-3 ml-9">
+                        {new Date(fb.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}, {new Date(fb.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      </p>
 
-                      {fb.translated_comment && fb.guest_language !== 'en' && (
-                        <div className="bg-primary/5 rounded-lg p-3 border-l-2 border-primary">
-                          <p className="text-xs text-muted-foreground mb-1">Translated</p>
-                          <p className="text-sm">{fb.translated_comment}</p>
-                        </div>
-                      )}
-
-                      {fb.original_comment && (
-                        <div className="bg-muted/50 rounded-lg p-3">
-                          <p className="text-xs text-muted-foreground mb-1">Original ({fb.guest_language.toUpperCase()})</p>
-                          <p className="text-sm" dir={fb.guest_language === 'ar' ? 'rtl' : 'ltr'}>{fb.original_comment}</p>
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
+                      {/* Download PDF Button */}
+                      <div className="ml-9">
                         {fb.pdf_path ? (
-                          <Button variant="outline" size="sm" onClick={() => downloadPdf(fb.pdf_path!)}>
-                            <Download className="w-3 h-3 mr-1" />Download PDF
+                          <Button
+                            variant="outline"
+                            className="w-full justify-center gap-2 h-10 rounded-lg border-border/80 text-foreground hover:bg-muted/50"
+                            onClick={() => downloadPdf(fb.pdf_path!)}
+                          >
+                            <Download className="w-4 h-4" />
+                            Download PDF
                           </Button>
                         ) : (
                           <Button
                             variant="outline"
-                            size="sm"
+                            className="w-full justify-center gap-2 h-10 rounded-lg border-border/80 text-foreground hover:bg-muted/50"
                             onClick={() => generatePdfForFeedback(fb)}
                             disabled={generatingPdfId === fb.id}
                           >
                             {generatingPdfId === fb.id ? (
-                              <><Loader2 className="w-3 h-3 mr-1 animate-spin" />Generating...</>
+                              <><Loader2 className="w-4 h-4 animate-spin" />Generating...</>
                             ) : (
-                              <><FileText className="w-3 h-3 mr-1" />Generate PDF</>
+                              <><FileText className="w-4 h-4" />Generate PDF</>
                             )}
-                          </Button>
-                        )}
-                        {canDelete && (
-                          <Button variant="outline" size="sm" onClick={() => deleteFeedback(fb.id)} className="text-destructive hover:text-destructive">
-                            <Trash2 className="w-3 h-3 mr-1" />Delete
                           </Button>
                         )}
                       </div>
