@@ -327,7 +327,7 @@ const MenuManagement = () => {
 
       {/* Add/Edit Dialog */}
       <Dialog open={showAdd} onOpenChange={(o) => { setShowAdd(o); if (!o) resetForm(); }}>
-        <DialogContent>
+        <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>{editItem ? 'Edit Item' : 'Add Menu Item'}</DialogTitle>
           </DialogHeader>

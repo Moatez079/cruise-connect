@@ -205,7 +205,7 @@ const Rooms = () => {
             </Button>
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <Button onClick={() => setAddDialogOpen(true)}><Plus className="w-4 h-4 mr-2" /> Generate Rooms</Button>
-              <DialogContent>
+              <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
                 <DialogHeader><DialogTitle className="font-serif">Generate Rooms</DialogTitle></DialogHeader>
                 <div className="space-y-4 mt-4">
                   <div className="space-y-2">

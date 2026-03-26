@@ -538,7 +538,7 @@ const Feedback = () => {
 
       {/* Add Question Dialog */}
       <Dialog open={showAddQuestion} onOpenChange={setShowAddQuestion}>
-        <DialogContent>
+        <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle>Add Question</DialogTitle>
           </DialogHeader>
