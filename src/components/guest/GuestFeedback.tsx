@@ -127,9 +127,11 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       const combinedComment = Object.values(translatedComments).filter(Boolean).join(' | ');
       const originalComment = commentEntries.map(([, v]) => v).join(' | ');
 
-      const { data: feedback, error } = await supabase
+      const feedbackId = crypto.randomUUID();
+      const { error } = await supabase
         .from('guest_feedback' as any)
         .insert({
+          id: feedbackId,
           boat_id: boatId,
           room_number: roomNumber,
           guest_language: language,
@@ -141,12 +143,9 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
           translated_comment: combinedComment || null,
           guest_name: guestName.trim() || null,
           company_name: companyName.trim() || null,
-        } as any)
-        .select('id')
-        .single();
+        } as any);
 
       if (error) throw error;
-      const feedbackId = (feedback as any)?.id;
 
       // Generate PDF (mandatory - retry up to 3 times)
       if (feedbackId) {
