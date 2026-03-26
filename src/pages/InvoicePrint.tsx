@@ -83,15 +83,18 @@ const InvoicePrint = () => {
     <>
       <style>{`
         @media print {
-          body { background: white !important; color: #1a1a2e !important; -webkit-print-color-adjust: exact; }
+          body { background: white !important; color: #111827 !important; -webkit-print-color-adjust: exact; }
           .no-print { display: none !important; }
+          * { color: #111827 !important; }
+          .print-muted { color: #4b5563 !important; }
+          .print-accent { color: #92400e !important; }
         }
         @media screen {
-          body { background: hsl(260 30% 6%) !important; }
+          body { background: #f9fafb !important; }
         }
       `}</style>
 
-      <div className="max-w-2xl mx-auto p-8 bg-background print:bg-white print:text-foreground">
+      <div className="max-w-2xl mx-auto p-8 bg-white text-gray-900" style={{ color: '#111827' }}>
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-6 border-b border-border/50 print:border-gray-200">
           <div className="flex items-center gap-3">
