@@ -3,16 +3,16 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { UserPlus, Shield, Trash2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBoats } from '@/hooks/useBoats';
@@ -26,6 +26,7 @@ interface UserWithRole {
   display_name: string | null;
   role: string | null;
   assignments: string[];
+  can_delete_feedback: boolean;
 }
 
 const UsersPage = () => {
@@ -53,6 +54,7 @@ const UsersPage = () => {
         display_name: p.display_name,
         role: rolesRes.data?.find(r => r.user_id === p.id)?.role || null,
         assignments: assignmentsRes.data?.filter(a => a.user_id === p.id).map(a => a.boat_id) || [],
+        can_delete_feedback: (p as any).can_delete_feedback ?? false,
       })) as UserWithRole[];
     },
   });
@@ -99,6 +101,18 @@ const UsersPage = () => {
     },
   });
 
+  const toggleDeletePermission = useMutation({
+    mutationFn: async ({ userId, value }: { userId: string; value: boolean }) => {
+      const { error } = await supabase.from('profiles').update({ can_delete_feedback: value } as any).eq('id', userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
+      toast({ title: 'Permission updated' });
+    },
+    onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+  });
+
   const getRoleBadgeColor = (role: string | null) => {
     switch (role) {
       case 'owner': return 'bg-primary/20 text-primary';
@@ -124,7 +138,7 @@ const UsersPage = () => {
           <div className="space-y-3">
             {users.map(u => (
               <Card key={u.id} className="border-border/50">
-                <CardContent className="flex items-center justify-between p-4">
+                <CardContent className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
                       <span className="text-sm font-medium">{(u.display_name || '?')[0].toUpperCase()}</span>
@@ -147,14 +161,27 @@ const UsersPage = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    {/* Delete Feedback Permission Toggle */}
+                    {u.id !== user?.id && u.role !== 'owner' && (
+                      <div className="flex items-center gap-2">
+                        <Switch
+                          checked={u.can_delete_feedback}
+                          onCheckedChange={(val) => toggleDeletePermission.mutate({ userId: u.id, value: val })}
+                        />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">Delete FB</span>
+                      </div>
+                    )}
+                    {u.role === 'owner' && u.id !== user?.id && (
+                      <span className="text-xs text-muted-foreground italic">Full access</span>
+                    )}
                     {u.id !== user?.id && (
-                      <>
+                      <div className="flex gap-2">
                         <Dialog open={dialogOpen && selectedUserId === u.id} onOpenChange={(open) => { setDialogOpen(open); if (open) setSelectedUserId(u.id); }}>
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm"><Shield className="w-3 h-3 mr-1" /> Role</Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
                             <DialogHeader><DialogTitle className="font-serif">Assign Role</DialogTitle></DialogHeader>
                             <div className="space-y-4 mt-4">
                               <Select value={newRole} onValueChange={setNewRole}>
@@ -172,7 +199,7 @@ const UsersPage = () => {
                           <DialogTrigger asChild>
                             <Button variant="outline" size="sm"><Plus className="w-3 h-3 mr-1" /> Boat</Button>
                           </DialogTrigger>
-                          <DialogContent>
+                          <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
                             <DialogHeader><DialogTitle className="font-serif">Assign to Boat</DialogTitle></DialogHeader>
                             <div className="space-y-4 mt-4">
                               <Select value={selectedBoatId} onValueChange={setSelectedBoatId}>
@@ -183,7 +210,7 @@ const UsersPage = () => {
                             </div>
                           </DialogContent>
                         </Dialog>
-                      </>
+                      </div>
                     )}
                   </div>
                 </CardContent>
