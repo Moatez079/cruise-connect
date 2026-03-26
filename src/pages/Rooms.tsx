@@ -348,7 +348,7 @@ const Rooms = () => {
         </Dialog>
 
         <Dialog open={regenDialogOpen} onOpenChange={setRegenDialogOpen}>
-          <DialogContent>
+          <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
             <DialogHeader><DialogTitle className="font-serif flex items-center gap-2"><Globe className="w-5 h-5" /> Regenerate All QR Codes</DialogTitle></DialogHeader>
             <div className="space-y-4 mt-4">
               <div className="space-y-2">
