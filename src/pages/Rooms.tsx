@@ -319,7 +319,29 @@ const Rooms = () => {
                   <QRCode value={selectedRoom.qr_code_data} size={180} />
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">Scan to request services</p>
-                <p className="mt-1 text-xs text-muted-foreground/60 break-all">{selectedRoom.qr_code_data}</p>
+                <Button variant="outline" size="sm" className="mt-3" onClick={() => {
+                  const printWindow = window.open('', '_blank');
+                  if (!printWindow) return;
+                  printWindow.document.write(`
+                    <html><head><title>Room ${selectedRoom.room_number}</title>
+                    <style>body{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:serif;}
+                    p{margin:8px 0;font-size:14px;}</style></head><body>
+                    <div id="qr"></div>
+                    <p style="font-size:20px;font-weight:bold;">Room ${selectedRoom.room_number}</p>
+                    <p>Scan to request services</p>
+                    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"><\/script>
+                    <script>
+                      var canvas = document.createElement('canvas');
+                      QRCode.toCanvas(canvas, '${selectedRoom.qr_code_data}', {width:250,margin:2}, function(){
+                        document.getElementById('qr').appendChild(canvas);
+                        setTimeout(function(){window.print();window.close();},500);
+                      });
+                    <\/script></body></html>
+                  `);
+                  printWindow.document.close();
+                }}>
+                  <Printer className="w-4 h-4 mr-2" /> Print QR
+                </Button>
               </div>
             )}
           </DialogContent>
