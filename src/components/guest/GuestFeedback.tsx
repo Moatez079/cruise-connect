@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,27 +64,9 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
   const [ratings, setRatings] = useState<Record<string, number>>({});
   const [comments, setComments] = useState<Record<string, string>>({});
   const [sending, setSending] = useState(false);
-  const [customQuestions, setCustomQuestions] = useState<any[]>([]);
-  const [customRatings, setCustomRatings] = useState<Record<string, number>>({});
-  const [customTexts, setCustomTexts] = useState<Record<string, string>>({});
-  const [loadingQuestions, setLoadingQuestions] = useState(true);
   const { toast } = useToast();
 
   const isRtl = language === 'ar';
-
-  useEffect(() => {
-    const fetchQuestions = async () => {
-      const { data } = await (supabase.from('feedback_questions' as any) as any)
-        .select('*')
-        .eq('boat_id', boatId)
-        .order('sort_order');
-      if (data) setCustomQuestions(data);
-      setLoadingQuestions(false);
-    };
-    fetchQuestions();
-  }, [boatId]);
-
-  const hasCustomQuestions = customQuestions.length > 0;
 
   const setRating = (key: string, value: number) => {
     setRatings((prev) => ({ ...prev, [key]: value }));
@@ -95,9 +77,7 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
   };
 
   const handleSubmit = async () => {
-    // Check at least one rating exists
-    const allRatings = { ...ratings, ...customRatings };
-    const hasAnyRating = Object.values(allRatings).some(v => v > 0);
+    const hasAnyRating = Object.values(ratings).some(v => v > 0);
     if (!hasAnyRating && !comments['general']?.trim()) {
       toast({ title: 'Please provide at least one rating or comment', variant: 'destructive' });
       return;
@@ -130,7 +110,7 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       }
 
       // Compute overall as average of all ratings (map 4-level to 5-level: 1→2, 2→3, 3→4, 4→5)
-      const ratingValues = Object.values(allRatings).filter(v => v > 0);
+      const ratingValues = Object.values(ratings).filter(v => v > 0);
       const mappedOverall = ratingValues.length > 0
         ? Math.round(ratingValues.reduce((s, v) => s + (v + 1), 0) / ratingValues.length)
         : 3;
@@ -168,32 +148,8 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       if (error) throw error;
       const feedbackId = (feedback as any)?.id;
 
-      // Insert custom question answers
-      if (feedbackId && hasCustomQuestions) {
-        const answersToInsert = customQuestions
-          .filter(q => customRatings[q.id] || customTexts[q.id])
-          .map(q => ({
-            feedback_id: feedbackId,
-            question_id: q.id,
-            rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
-            text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
-          }));
-        if (answersToInsert.length > 0) {
-          await (supabase.from('feedback_answers' as any) as any).insert(answersToInsert);
-        }
-      }
-
-      // Generate PDF (mandatory - retry up to 2 times)
+      // Generate PDF (mandatory - retry up to 3 times)
       if (feedbackId) {
-        const customAnswersMapped = customQuestions
-          .filter(q => customRatings[q.id] || customTexts[q.id])
-          .map(q => ({
-            question_label: q.label_en,
-            question_type: q.question_type,
-            rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
-            text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
-          }));
-
         const pdfData = {
           id: feedbackId,
           room_number: roomNumber,
@@ -215,7 +171,7 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
         let pdfSuccess = false;
         for (let attempt = 0; attempt < 3 && !pdfSuccess; attempt++) {
           try {
-            await generateAndUploadFeedbackPDF(pdfData, customAnswersMapped);
+            await generateAndUploadFeedbackPDF(pdfData);
             pdfSuccess = true;
           } catch (pdfErr) {
             console.warn(`PDF attempt ${attempt + 1} failed:`, pdfErr);
@@ -234,14 +190,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       setSending(false);
     }
   };
-
-  if (loadingQuestions) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -347,43 +295,6 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
             </motion.div>
           ))}
 
-          {/* Custom Questions (dynamic from admin) */}
-          {hasCustomQuestions && (
-            <motion.div
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-card rounded-xl p-4 border border-border/50"
-            >
-              <h2 className="text-base font-bold text-foreground mb-4">
-                Additional Questions
-              </h2>
-              <div className="space-y-4">
-                {customQuestions.map((q: any) => (
-                  <div key={q.id}>
-                    <p className="text-sm font-medium text-foreground mb-2">
-                      {q.label_en}
-                      {q.required && <span className="text-destructive ml-1">*</span>}
-                    </p>
-                    {q.question_type === 'rating' ? (
-                      <PillRating
-                        value={customRatings[q.id] || 0}
-                        onChange={(v) => setCustomRatings(prev => ({ ...prev, [q.id]: v }))}
-                        lang={language}
-                      />
-                    ) : (
-                      <Textarea
-                        value={customTexts[q.id] || ''}
-                        onChange={(e) => setCustomTexts(prev => ({ ...prev, [q.id]: e.target.value }))}
-                        className="min-h-[80px] bg-background/50 border-border/50 text-base resize-none"
-                        dir={isRtl ? 'rtl' : 'ltr'}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
 
           {/* Submit */}
           <motion.div
