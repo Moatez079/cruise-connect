@@ -611,9 +611,16 @@ const Feedback = () => {
                   <Card key={fb.id} className="border-border/50">
                     <CardHeader className="pb-3">
                       <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-medium">
-                          Room {fb.room_number} · {getBoatName(fb.boat_id)}
-                        </CardTitle>
+                        <div>
+                          <CardTitle className="text-sm font-medium">
+                            Room {fb.room_number} · {getBoatName(fb.boat_id)}
+                          </CardTitle>
+                          {(fb.guest_name || fb.company_name) && (
+                            <CardDescription className="text-xs mt-0.5">
+                              {fb.guest_name}{fb.company_name ? ` — ${fb.company_name}` : ''}
+                            </CardDescription>
+                          )}
+                        </div>
                         <span className="text-xs text-muted-foreground">
                           {new Date(fb.created_at).toLocaleDateString()}
                         </span>
