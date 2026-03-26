@@ -178,7 +178,27 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
       // Generate PDF
       if (feedbackId) {
         try {
-          await generateAndUploadPDF(feedbackId, translatedComment);
+          const customAnswersMapped = customQuestions
+            .filter(q => customRatings[q.id] || customTexts[q.id])
+            .map(q => ({
+              question_label: q.label_en,
+              question_type: q.question_type,
+              rating_value: q.question_type === 'rating' ? (customRatings[q.id] || null) : null,
+              text_value: q.question_type === 'text' ? (customTexts[q.id] || null) : null,
+            }));
+
+          await generateAndUploadFeedbackPDF({
+            id: feedbackId,
+            room_number: roomNumber,
+            guest_language: language,
+            overall_rating: ratings.overall,
+            service_rating: ratings.service || null,
+            cleanliness_rating: ratings.cleanliness || null,
+            food_rating: ratings.food || null,
+            original_comment: comment.trim() || null,
+            translated_comment: translatedComment,
+            created_at: new Date().toISOString(),
+          }, customAnswersMapped);
         } catch (pdfErr) {
           console.warn('PDF generation failed:', pdfErr);
         }
