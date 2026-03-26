@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -13,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, DoorOpen, Printer, Pencil, BedDouble, Crown, Loader2 } from 'lucide-react';
+import { Plus, DoorOpen, Printer, Pencil, BedDouble, Crown, Loader2, RefreshCw, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBoats } from '@/hooks/useBoats';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
@@ -33,14 +32,13 @@ const roomTypeLabels: Record<string, string> = { room: 'Room', suite: 'Suite' };
 const bedTypeLabels: Record<string, string> = { king: 'King Size', twin: 'Twin Bed' };
 const PUBLISHED_GUEST_APP_ORIGIN = 'https://cruises-connect.lovable.app';
 
-const getGuestAppOrigin = () => {
-  const { hostname, origin } = window.location;
-
-  if (hostname.includes('id-preview--') || hostname.endsWith('.lovableproject.com')) {
-    return PUBLISHED_GUEST_APP_ORIGIN;
-  }
-
-  return origin;
+const generateToken = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  let token = '';
+  const arr = new Uint8Array(12);
+  crypto.getRandomValues(arr);
+  for (let i = 0; i < 12; i++) token += chars[arr[i] % chars.length];
+  return token;
 };
 
 const Rooms = () => {
@@ -57,6 +55,8 @@ const Rooms = () => {
   const [newRoomNumber, setNewRoomNumber] = useState('');
   const [newRoomType, setNewRoomType] = useState<string>('room');
   const [newBedType, setNewBedType] = useState<string>('king');
+  const [regenDialogOpen, setRegenDialogOpen] = useState(false);
+  const [customDomain, setCustomDomain] = useState(PUBLISHED_GUEST_APP_ORIGIN);
 
   // Auto-select first boat
   const effectiveBoatId = selectedBoatId || boats[0]?.id || '';
@@ -82,8 +82,10 @@ const Rooms = () => {
       for (let i = 0; i < count; i++) {
         while (existingNumbers.includes(num)) num++;
         if (num > 9999) break;
-        const qrData = `${getGuestAppOrigin()}/guest/${effectiveBoatId}/${num}`;
-        newRooms.push({ boat_id: effectiveBoatId, room_number: num, qr_code_data: qrData });
+        const token = generateToken();
+        const domain = customDomain.replace(/\/+$/, '');
+        const qrData = `${domain}/guest/t/${token}`;
+        newRooms.push({ boat_id: effectiveBoatId, room_number: num, qr_code_data: qrData, qr_token: token } as any);
         existingNumbers.push(num);
         num++;
       }
@@ -105,9 +107,11 @@ const Rooms = () => {
       const num = parseInt(newRoomNumber);
       if (!num || num < 1) throw new Error('Invalid room number');
       if (rooms.some(r => r.id !== selectedRoom.id && r.room_number === num)) throw new Error('Room number already exists');
-      const qrData = `${getGuestAppOrigin()}/guest/${effectiveBoatId}/${num}`;
+      const token = (selectedRoom as any).qr_token || generateToken();
+      const domain = customDomain.replace(/\/+$/, '');
+      const qrData = `${domain}/guest/t/${token}`;
       const { error } = await supabase.from('rooms').update({
-        room_number: num, qr_code_data: qrData, room_type: newRoomType as any, bed_type: newBedType as any,
+        room_number: num, qr_code_data: qrData, room_type: newRoomType as any, bed_type: newBedType as any, qr_token: token,
       }).eq('id', selectedRoom.id);
       if (error) throw error;
       return { num, qrData };
@@ -119,6 +123,30 @@ const Rooms = () => {
       queryClient.invalidateQueries({ queryKey: ['rooms', effectiveBoatId] });
     },
     onError: (err: any) => toast({ title: err.message, variant: 'destructive' }),
+  });
+
+  const regenerateAllMutation = useMutation({
+    mutationFn: async () => {
+      if (!effectiveBoatId || rooms.length === 0) throw new Error('No rooms');
+      const domain = customDomain.replace(/\/+$/, '');
+      let updated = 0;
+      for (const room of rooms) {
+        const token = generateToken();
+        const qrData = `${domain}/guest/t/${token}`;
+        const { error } = await supabase.from('rooms').update({
+          qr_code_data: qrData, qr_token: token,
+        } as any).eq('id', room.id);
+        if (error) throw error;
+        updated++;
+      }
+      return updated;
+    },
+    onSuccess: (count) => {
+      toast({ title: `${count} QR codes regenerated!` });
+      setRegenDialogOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['rooms', effectiveBoatId] });
+    },
+    onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
   const handlePrintAll = () => {
@@ -171,6 +199,9 @@ const Rooms = () => {
           <div className="flex gap-2">
             <Button variant="outline" onClick={handlePrintAll} disabled={rooms.length === 0}>
               <Printer className="w-4 h-4 mr-2" /> Print All QR
+            </Button>
+            <Button variant="outline" onClick={() => setRegenDialogOpen(true)} disabled={rooms.length === 0}>
+              <RefreshCw className="w-4 h-4 mr-2" /> Regenerate QR
             </Button>
             <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
               <Button onClick={() => setAddDialogOpen(true)}><Plus className="w-4 h-4 mr-2" /> Generate Rooms</Button>
@@ -291,6 +322,26 @@ const Rooms = () => {
                 <p className="mt-1 text-xs text-muted-foreground/60 break-all">{selectedRoom.qr_code_data}</p>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={regenDialogOpen} onOpenChange={setRegenDialogOpen}>
+          <DialogContent>
+            <DialogHeader><DialogTitle className="font-serif flex items-center gap-2"><Globe className="w-5 h-5" /> Regenerate All QR Codes</DialogTitle></DialogHeader>
+            <div className="space-y-4 mt-4">
+              <div className="space-y-2">
+                <Label>Domain (base URL)</Label>
+                <Input value={customDomain} onChange={e => setCustomDomain(e.target.value)} placeholder="https://yourdomain.com" className="bg-secondary/50" />
+                <p className="text-xs text-muted-foreground">QR links will be: {customDomain.replace(/\/+$/, '')}/guest/t/[secure-token]</p>
+              </div>
+              <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3">
+                <p className="text-sm text-destructive">⚠️ This will regenerate ALL {rooms.length} QR codes with new secure tokens. Old printed QR codes will stop working.</p>
+              </div>
+              <Button onClick={() => regenerateAllMutation.mutate()} className="w-full" disabled={regenerateAllMutation.isPending || !customDomain.trim()}>
+                {regenerateAllMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-2" />}
+                Regenerate {rooms.length} QR Codes
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
