@@ -16,7 +16,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow
 } from '@/components/ui/table';
-import { Plus, Receipt, Trash2, Edit, Eye, EyeOff, Printer, DoorOpen, Loader2 } from 'lucide-react';
+import { Plus, Receipt, Trash2, Edit, Eye, EyeOff, Printer, DoorOpen, Loader2, CheckCircle2, Ban } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useBoats } from '@/hooks/useBoats';
 import { PageSkeleton } from '@/components/ui/page-skeleton';
@@ -141,6 +141,19 @@ const Invoices = () => {
     if (selectedInvoice?.id === invoice.id) setSelectedInvoice({ ...invoice, status: newStatus as any });
   };
 
+  const changeStatus = async (invoice: Invoice, newStatus: string) => {
+    await supabase.from('invoices').update({ status: newStatus as any }).eq('id', invoice.id);
+    const labels: Record<string, string> = {
+      draft: 'Invoice set to draft',
+      visible: 'Invoice visible to guest',
+      paid: 'Invoice marked as paid',
+      closed: 'Invoice closed',
+    };
+    toast({ title: labels[newStatus] || 'Status updated' });
+    queryClient.invalidateQueries({ queryKey: ['invoices', effectiveBoatId] });
+    if (selectedInvoice?.id === invoice.id) setSelectedInvoice({ ...invoice, status: newStatus as any });
+  };
+
   const getTotal = () => items.reduce((sum, i) => sum + i.quantity * i.unit_price, 0);
 
   const statusBadge = (status: string) => {
@@ -210,12 +223,43 @@ const Invoices = () => {
               </Card>
             ) : (
               <Card className="border-border/50">
-                <CardHeader className="flex flex-row items-center justify-between">
+                <CardHeader className="flex flex-row items-center justify-between flex-wrap gap-2">
                   <div>
                     <CardTitle className="font-serif text-lg">Room {selectedInvoice.room_number} Invoice</CardTitle>
                     <p className="text-xs text-muted-foreground mt-1">Currency: {selectedInvoice.currency}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
+                    {/* Status actions */}
+                    {selectedInvoice.status === 'draft' && (
+                      <Button variant="outline" size="sm" onClick={() => changeStatus(selectedInvoice, 'visible')}>
+                        <Eye className="w-4 h-4 mr-1" /> Show to Guest
+                      </Button>
+                    )}
+                    {selectedInvoice.status === 'visible' && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => changeStatus(selectedInvoice, 'draft')}>
+                          <EyeOff className="w-4 h-4 mr-1" /> Hide
+                        </Button>
+                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => changeStatus(selectedInvoice, 'paid')}>
+                          <CheckCircle2 className="w-4 h-4 mr-1" /> Mark Paid
+                        </Button>
+                      </>
+                    )}
+                    {selectedInvoice.status === 'paid' && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => changeStatus(selectedInvoice, 'visible')}>
+                          Reopen
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => changeStatus(selectedInvoice, 'closed')}>
+                          <Ban className="w-4 h-4 mr-1" /> Close
+                        </Button>
+                      </>
+                    )}
+                    {selectedInvoice.status === 'closed' && (
+                      <Button variant="outline" size="sm" onClick={() => changeStatus(selectedInvoice, 'paid')}>
+                        Reopen
+                      </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={() => window.open(`/invoice-print/${selectedInvoice.id}`, '_blank')}>
                       <Printer className="w-4 h-4 mr-1" /> Print
                     </Button>
@@ -277,12 +321,12 @@ const Invoices = () => {
 
         {/* Create Invoice Dialog */}
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent>
+          <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
             <DialogHeader><DialogTitle className="font-serif">Create Invoice</DialogTitle></DialogHeader>
             <div className="space-y-4 mt-4">
               <div className="space-y-2">
-                <Label>Room Number</Label>
-                <Input type="number" min="1" value={newRoomNumber} onChange={e => setNewRoomNumber(e.target.value)} className="bg-secondary/50" />
+                <Label htmlFor="inv-room">Room Number</Label>
+                <Input id="inv-room" type="number" min="1" value={newRoomNumber} onChange={e => setNewRoomNumber(e.target.value)} className="bg-secondary/50" autoFocus />
               </div>
               <div className="space-y-2">
                 <Label>Currency</Label>
@@ -309,7 +353,7 @@ const Invoices = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={() => createInvoiceMutation.mutate()} className="w-full" disabled={createInvoiceMutation.isPending}>
+              <Button onClick={() => createInvoiceMutation.mutate()} className="w-full" disabled={createInvoiceMutation.isPending || !newRoomNumber}>
                 {createInvoiceMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}Create Invoice
               </Button>
             </div>
@@ -318,7 +362,7 @@ const Invoices = () => {
 
         {/* Add/Edit Item Dialog */}
         <Dialog open={addItemOpen} onOpenChange={v => { setAddItemOpen(v); if (!v) resetItemForm(); }}>
-          <DialogContent>
+          <DialogContent onPointerDownOutside={(e) => e.preventDefault()}>
             <DialogHeader><DialogTitle className="font-serif">{editItemId ? 'Edit Charge' : 'Add Charge'}</DialogTitle></DialogHeader>
             <div className="space-y-4 mt-4">
               <div className="space-y-2">
@@ -329,20 +373,20 @@ const Invoices = () => {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Description</Label>
-                <Input value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="bg-secondary/50" />
+                <Label htmlFor="item-desc">Description</Label>
+                <Input id="item-desc" value={itemDesc} onChange={e => setItemDesc(e.target.value)} className="bg-secondary/50" autoFocus />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Quantity</Label>
-                  <Input type="number" min="1" value={itemQty} onChange={e => setItemQty(e.target.value)} className="bg-secondary/50" />
+                  <Label htmlFor="item-qty">Quantity</Label>
+                  <Input id="item-qty" type="number" min="1" value={itemQty} onChange={e => setItemQty(e.target.value)} className="bg-secondary/50" />
                 </div>
                 <div className="space-y-2">
-                  <Label>Unit Price</Label>
-                  <Input type="number" step="0.01" value={itemPrice} onChange={e => setItemPrice(e.target.value)} className="bg-secondary/50" />
+                  <Label htmlFor="item-price">Unit Price</Label>
+                  <Input id="item-price" type="number" step="0.01" value={itemPrice} onChange={e => setItemPrice(e.target.value)} className="bg-secondary/50" />
                 </div>
               </div>
-              <Button onClick={() => addItemMutation.mutate()} className="w-full" disabled={addItemMutation.isPending}>
+              <Button onClick={() => addItemMutation.mutate()} className="w-full" disabled={addItemMutation.isPending || !itemDesc || !itemPrice}>
                 {addItemMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
                 {editItemId ? 'Save Changes' : 'Add Charge'}
               </Button>
