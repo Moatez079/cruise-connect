@@ -68,6 +68,7 @@ const App = () => (
                 <Route path="/invoice-print/:invoiceId" element={<ProtectedRoute><InvoicePrint /></ProtectedRoute>} />
                 {/* Guest routes */}
                 <Route path="/guest/:boatId/:roomNumber" element={<ErrorBoundary><GuestApp /></ErrorBoundary>} />
+                <Route path="/guest/t/:token" element={<ErrorBoundary><GuestApp /></ErrorBoundary>} />
                 <Route path="/guest/:boatId/:roomNumber/invoice" element={<ErrorBoundary><GuestInvoice language="en" /></ErrorBoundary>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
