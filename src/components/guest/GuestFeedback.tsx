@@ -77,9 +77,8 @@ const GuestFeedback = ({ language, boatId, roomNumber, onBack, onSuccess }: Prop
   };
 
   const handleSubmit = async () => {
-    // Check at least one rating exists
-    const allRatings = { ...ratings, ...customRatings };
-    const hasAnyRating = Object.values(allRatings).some(v => v > 0);
+    const hasAnyRating = Object.values(ratings).some(v => v > 0);
+    if (!hasAnyRating && !comments['general']?.trim()) {
     if (!hasAnyRating && !comments['general']?.trim()) {
       toast({ title: 'Please provide at least one rating or comment', variant: 'destructive' });
       return;
