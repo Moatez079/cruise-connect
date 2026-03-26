@@ -93,6 +93,8 @@ const RatingBar = ({ label, value, count }: { label: string; value: number; coun
 };
 
 const Feedback = () => {
+  const { profile, isOwner } = useAuth();
+  const canDelete = isOwner || !!(profile as any)?.can_delete_feedback;
   const [feedbacks, setFeedbacks] = useState<FeedbackRow[]>([]);
   const [boats, setBoats] = useState<Boat[]>([]);
   const [selectedBoat, setSelectedBoat] = useState<string>('all');
